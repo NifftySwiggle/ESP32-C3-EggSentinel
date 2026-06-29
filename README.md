@@ -7,21 +7,16 @@ Buy the ESP32-C3 EGG used https://s.click.aliexpress.com/e/_c4oyN1mt
 
 ## What this detects
 
-### | Detection | Always on? |
+| Detection                         | Always on?                     |
+|-----------------------------------|--------------------------------|
+| Deauth/disassoc flood             | Yes                            |
+| Rogue/evil-twin AP                | Yes                            |
+| ARP spoofing/MITM                 | Yes                            |
+| New device on LAN                 | Yes                            |
+| Self port-scan                    | Yes                            |
+| BLE advertisement flood           | Only if Bluetooth toggle is ON |
+| New/unknown BLE device nearby     | Only if Bluetooth toggle is ON |
 
-| Deauth/disassoc flood | Yes |
-
-| Rogue/evil-twin AP | Yes |
-
-| ARP spoofing/MITM | Yes |
-
-| New device on LAN | Yes |
-
-| Self port-scan | Yes |
-
-| BLE advertisement flood ("BLE spam") | Only if Bluetooth toggle is ON |
-
-| New/unknown BLE device nearby | Only if Bluetooth toggle is ON |
 
 ## Setup flow, step by step
 
