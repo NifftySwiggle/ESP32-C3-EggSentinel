@@ -1,5 +1,5 @@
 # ESP32-C3-EggSentinel
-ESP32-C3 Wi-Fi and Bluetooth Security Monitor
+## ESP32-C3 Wi-Fi and Bluetooth Security Monitor
 
 Buy the ESP32-C3 EGG used https://s.click.aliexpress.com/e/_c4oyN1mt
 
