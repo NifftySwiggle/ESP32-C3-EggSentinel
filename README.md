@@ -1,6 +1,10 @@
 # ESP32-C3-EggSentinel
 ESP32-C3 Wi-Fi and Bluetooth Security Monitor
 
+Buy the ESP32-C3 EGG used https://s.click.aliexpress.com/e/_c4oyN1mt
+
+<img width="751" height="1104" alt="esp32c3 oled schematic" src="https://github.com/user-attachments/assets/0a7ac87a-31dc-4c35-b0c4-85acf7f091e5" />
+
 ## What this version detects
 
 ### | Detection | Always on? |
