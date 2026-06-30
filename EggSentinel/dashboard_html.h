@@ -139,6 +139,8 @@ const char DASHBOARD_HTML[] PROGMEM = R"HTMLPAGE(
       <div class="scan-summary" id="scanSummary"></div>
     </div>
   </section>
+  
+  <button class="secondary" id="privacyBtn" onclick="togglePrivacy()">Hide sensitive data</button>
 
   <section>
     <h2>Devices on your network</h2>
@@ -207,6 +209,27 @@ const char DASHBOARD_HTML[] PROGMEM = R"HTMLPAGE(
 <div id="toast"></div>
 
 <script>
+
+let privacyOn = true; // true = hide MAC/IP
+function mask(text) {
+  if (!privacyOn) return text;
+
+  // Mask MAC addresses
+  text = text.replace(/[0-9A-F]{2}(:[0-9A-F]{2}){5}/gi, "XX:XX:XX:XX:XX:XX");
+
+  // Mask IPv4 addresses
+  text = text.replace(/\b\d{1,3}(\.\d{1,3}){3}\b/g, "xxx.xxx.xxx.xxx");
+
+  return text;
+}
+function togglePrivacy() {
+  privacyOn = !privacyOn;
+  document.getElementById('privacyBtn').textContent =
+    privacyOn ? "Show sensitive data" : "Hide sensitive data";
+  refresh(); // redraw everything
+}
+
+
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -265,7 +288,10 @@ async function refresh() {
     d.devices.forEach(dev => {
       const row = document.createElement('div');
       row.className = 'device-row';
-      row.innerHTML = '<span>' + dev.ip + '</span><span style="color:var(--muted)">' + dev.mac + '</span>';
+      row.innerHTML =
+    '<span>' + mask(dev.ip) + '</span>' +
+    '<span style="color:var(--muted)">' + mask(dev.mac) + '</span>';
+
       list.appendChild(row);
     });
   } catch (e) { console.error(e); }
@@ -284,7 +310,7 @@ async function refresh() {
       const mins = Math.floor(l.t / 60000);
       row.innerHTML = '<span class="log-time">' + mins + 'm ago</span>' +
                        '<span class="tag tag-' + l.type + '">' + l.type + '</span>' +
-                       '<span>' + l.message.replace(/\n/g, ' · ') + '</span>';
+                       '<span>' + mask(l.message.replace(/\n/g, ' · ')) + '</span>';
       logList.appendChild(row);
     });
   } catch (e) { console.error(e); }
