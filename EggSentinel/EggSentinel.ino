@@ -1168,17 +1168,20 @@ void drawStatsPage() {
 
 void drawNetworkPage() {
   display.setTextSize(1);
+
+  // Line 1: IP address
   display.setCursor(SCREEN_OFFSET_X, SCREEN_OFFSET_Y);
   display.print(WiFi.localIP().toString());
+
+  // Line 2: Status label
   display.setCursor(SCREEN_OFFSET_X, SCREEN_OFFSET_Y + 12);
-  String gw = g_gatewayMac;
-  if (gw.length() > 0) {
-    display.print("GW:" + gw.substring(0, 8));
-    display.setCursor(SCREEN_OFFSET_X, SCREEN_OFFSET_Y + 22);
-    display.print(gw.substring(8));
-  } else {
-    display.print("GW: resolving");
-  }
+  display.print("Status:");
+
+  // Line 3: Status message
+  display.setCursor(SCREEN_OFFSET_X, SCREEN_OFFSET_Y + 22);
+  display.print(g_statusMessage);
+
+  // Line 4: Device name
   display.setCursor(SCREEN_OFFSET_X, SCREEN_OFFSET_Y + 33);
   display.print(DEVICE_NAME);
   display.print(".local");
