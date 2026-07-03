@@ -1,0 +1,2046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Egg Sentinel — ESP32-C3 Network Security Monitor</title>
+<meta name="description" content="A pocket-sized Wi-Fi + Bluetooth security monitor for your home network. Detects deauth attacks, rogue APs, ARP spoofing, new devices, and BLE threats. Flash in seconds.">
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- esptool-js from jsDelivr CDN -->
+<script type="module">
+import { ESPLoader, Transport } from "https://cdn.jsdelivr.net/npm/esptool-js@0.6.0/bundle.js";
+window.ESPLoader = ESPLoader;
+window.Transport = Transport;
+window.esptoolLoaded = true;
+window.dispatchEvent(new Event('esptool-ready'));
+</script>
+
+<style>
+/* ============================================================
+   TOKENS
+   ============================================================ */
+:root {
+  --navy:    #060a14;
+  --navy2:   #0c1220;
+  --navy3:   #141b2d;
+  --teal:    #00d4aa;
+  --teal2:   #00a880;
+  --amber:   #f5a623;
+  --red:     #ff4d4f;
+  --slate:   #8b93a7;
+  --slate2:  #4a5568;
+  --text:    #e8edf5;
+  --text2:   #c5cdd8;
+  --border:  rgba(255,255,255,0.07);
+  --border2: rgba(0,212,170,0.2);
+
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body:    'Inter', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+}
+
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--navy);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+::selection { background: var(--teal); color: var(--navy); }
+
+a { color: var(--teal); text-decoration: none; }
+a:hover { color: #fff; }
+
+code, .mono {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+
+/* ============================================================
+   NAV
+   ============================================================ */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  height: 60px;
+  background: rgba(6,10,20,0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.nav-logo .egg-icon {
+  width: 28px; height: 28px;
+  background: radial-gradient(circle at 40% 35%, var(--teal), var(--teal2) 60%, #006650);
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  flex-shrink: 0;
+  box-shadow: 0 0 12px rgba(0,212,170,0.4);
+}
+
+.nav-links {
+  display: flex;
+  gap: 28px;
+  list-style: none;
+}
+
+.nav-links a {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--slate);
+  transition: color .2s;
+  letter-spacing: 0.02em;
+}
+.nav-links a:hover { color: var(--text); }
+
+.nav-cta {
+  background: var(--teal);
+  color: var(--navy) !important;
+  font-weight: 700 !important;
+  padding: 8px 18px;
+  border-radius: 8px;
+  transition: background .2s, transform .1s !important;
+}
+.nav-cta:hover {
+  background: #00ffcc !important;
+  transform: translateY(-1px);
+}
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 40px;
+  padding: 100px 64px 80px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 70% at 65% 50%, rgba(0,212,170,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 50% at 20% 80%, rgba(245,166,35,0.04) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Grid lines bg */
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+}
+
+.hero-text {
+  position: relative;
+  z-index: 2;
+  max-width: 520px;
+  flex-shrink: 0;
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 20px;
+}
+
+.hero-eyebrow::before {
+  display: block;
+  width: 24px; height: 1px;
+  background: var(--teal);
+}
+
+.hero-eyebrow .dot {
+  width: 6px; height: 6px;
+  background: var(--teal);
+  border-radius: 50%;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0,212,170,0.4); }
+  50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(0,212,170,0); }
+}
+
+h1 {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 5vw, 58px);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin-bottom: 22px;
+}
+
+h1 .accent { color: var(--teal); }
+
+.hero-sub {
+  font-size: 17px;
+  color: var(--text2);
+  line-height: 1.65;
+  margin-bottom: 36px;
+  max-width: 460px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 24px;
+  border-radius: 10px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+  border: none;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: var(--teal);
+  color: var(--navy);
+}
+.btn-primary:hover {
+  background: #00ffcc;
+  color: var(--navy);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,212,170,0.3);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border2);
+}
+.btn-secondary:hover {
+  border-color: var(--teal);
+  color: var(--teal);
+  transform: translateY(-1px);
+}
+
+.hero-stats {
+  display: flex;
+  gap: 32px;
+  margin-top: 48px;
+  padding-top: 32px;
+  border-top: 1px solid var(--border);
+}
+
+.stat-item { display: flex; flex-direction: column; gap: 4px; }
+
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.stat-value .teal { color: var(--teal); }
+
+.stat-label {
+  font-size: 12px;
+  color: var(--slate);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+}
+
+/* ============================================================
+   RADAR (THE SIGNATURE ELEMENT)
+   ============================================================ */
+.radar-wrap {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+#radar-canvas {
+  display: block;
+  filter: drop-shadow(0 0 40px rgba(0,212,170,0.15));
+}
+
+/* Radar legend */
+.radar-legend {
+  position: absolute;
+  bottom: -36px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 20px;
+  white-space: nowrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--slate);
+}
+
+.legend-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+}
+
+/* ============================================================
+   SECTIONS COMMON
+   ============================================================ */
+section { padding: 96px 64px; }
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 12px;
+}
+
+h2 {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 3.5vw, 42px);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+
+.section-sub {
+  font-size: 17px;
+  color: var(--text2);
+  max-width: 560px;
+  line-height: 1.65;
+  margin-bottom: 56px;
+}
+
+/* ============================================================
+   DETECTIONS GRID
+   ============================================================ */
+#detect { background: var(--navy2); }
+
+.detect-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+/* Center the last card when a row is incomplete */
+.detect-grid > *:last-child {
+  justify-self: center;
+  max-width: 560px; /* adjust to taste */
+}
+
+/* Make sure the centered card doesn't stretch full width on narrow screens */
+@media (max-width: 600px) {
+  .detect-grid > *:last-child { max-width: none; justify-self: stretch; }
+}
+
+.detect-card {
+  background: var(--navy2);
+  padding: 32px;
+  transition: background .2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.detect-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--teal);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform .3s;
+}
+
+.detect-card:hover { background: var(--navy3); }
+.detect-card:hover::before { transform: scaleX(1); }
+
+.detect-icon {
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+  font-size: 20px;
+  background: rgba(0,212,170,0.08);
+  border: 1px solid rgba(0,212,170,0.15);
+}
+
+.detect-icon.amber {
+  background: rgba(245,166,35,0.08);
+  border-color: rgba(245,166,35,0.2);
+}
+
+.detect-icon.red {
+  background: rgba(255,77,79,0.08);
+  border-color: rgba(255,77,79,0.2);
+}
+
+.detect-card h3 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.detect-card p {
+  font-size: 13.5px;
+  color: var(--slate);
+  line-height: 1.6;
+}
+
+.detect-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin-top: 14px;
+}
+
+.badge-always { background: rgba(0,212,170,0.12); color: var(--teal); }
+.badge-toggle { background: rgba(245,166,35,0.12); color: var(--amber); }
+
+/* ============================================================
+   HOW IT WORKS (TIMELINE)
+   ============================================================ */
+#how { background: var(--navy); }
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-width: 700px;
+  position: relative;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 20px;
+  top: 0; bottom: 0;
+  width: 1px;
+  background: linear-gradient(to bottom, var(--teal) 0%, rgba(0,212,170,0.1) 100%);
+}
+
+.tl-item {
+  display: flex;
+  gap: 32px;
+  padding: 0 0 48px 64px;
+  position: relative;
+}
+
+.tl-item:last-child { padding-bottom: 0; }
+
+.tl-node {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--navy2);
+  border: 2px solid var(--teal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--teal);
+  box-shadow: 0 0 16px rgba(0,212,170,0.2);
+}
+
+.tl-content h3 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.tl-content p {
+  font-size: 14.5px;
+  color: var(--text2);
+  line-height: 1.65;
+}
+
+/* ============================================================
+   OLED PREVIEW
+   ============================================================ */
+#oled-preview {
+  background: var(--navy2);
+  display: flex;
+  align-items: center;
+  gap: 80px;
+}
+
+.oled-screens {
+  display: flex;
+  gap: 20px;
+  align-items: flex-end;
+}
+
+.oled-frame {
+  background: #080808;
+  border: 2px solid #333;
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 0 0 1px #1a1a1a, 0 20px 40px rgba(0,0,0,0.5);
+  position: relative;
+}
+
+.oled-frame::before {
+  content: attr(data-label);
+  position: absolute;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--slate2);
+  white-space: nowrap;
+}
+
+.oled-screen {
+  width: 108px; height: 60px;
+  background: #000;
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.oled-screen canvas {
+  display: block;
+  image-rendering: pixelated;
+  width: 100%; height: 100%;
+}
+
+.oled-text { flex: 1; max-width: 460px; }
+
+/* ============================================================
+   DOCS
+   ============================================================ */
+#docs { background: var(--navy); }
+
+.docs-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 32px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--slate);
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color .2s, border-color .2s;
+}
+
+.tab-btn.active { color: var(--teal); border-bottom-color: var(--teal); }
+.tab-btn:hover:not(.active) { color: var(--text2); }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.doc-section { margin-bottom: 36px; }
+
+.doc-section h3 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+.doc-section p, .doc-section li {
+  font-size: 14.5px;
+  color: var(--text2);
+  line-height: 1.7;
+}
+
+.doc-section ul, .doc-section ol {
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.code-block {
+  background: var(--navy2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--teal);
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin: 14px 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text2);
+  overflow-x: auto;
+  line-height: 1.7;
+}
+
+.code-block .comment { color: var(--slate); }
+.code-block .key { color: var(--teal); }
+.code-block .val { color: var(--amber); }
+
+.alert-box {
+  background: rgba(245,166,35,0.08);
+  border: 1px solid rgba(245,166,35,0.25);
+  border-radius: 8px;
+  padding: 14px 18px;
+  font-size: 14px;
+  color: var(--amber);
+  margin: 16px 0;
+}
+
+.table-wrap { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+th {
+  text-align: left;
+  padding: 10px 16px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--slate);
+  border-bottom: 1px solid var(--border);
+}
+
+td {
+  padding: 12px 16px;
+  color: var(--text2);
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.02); }
+
+td code {
+  background: rgba(0,212,170,0.08);
+  color: var(--teal);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* ============================================================
+   WEB FLASHER
+   ============================================================ */
+#flash {
+  background: var(--navy2);
+  border-top: 1px solid var(--border);
+}
+
+.flasher-wrap {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.browser-warning {
+  display: none;
+  background: rgba(255,77,79,0.08);
+  border: 1px solid rgba(255,77,79,0.25);
+  border-radius: 10px;
+  padding: 16px 20px;
+  font-size: 14px;
+  color: #ff8080;
+  margin-bottom: 24px;
+}
+
+.flash-card {
+  background: var(--navy);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.flash-header {
+  padding: 24px 28px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.flash-header h3 {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.flash-step-indicators {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.step-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background .3s;
+}
+
+.step-dot.done { background: var(--teal); }
+.step-dot.active { background: var(--amber); box-shadow: 0 0 8px rgba(245,166,35,0.5); }
+
+.flash-body { padding: 32px 28px; }
+
+.flash-steps { display: flex; flex-direction: column; gap: 24px; }
+
+.flash-step {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  opacity: 1;
+  transition: opacity .3s;
+}
+
+.flash-step.active { opacity: 1; }
+.flash-step.done { opacity: 0.6; }
+
+.step-num {
+  width: 32px; height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--navy2);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--slate);
+  transition: all .3s;
+}
+
+.flash-step.active .step-num {
+  background: rgba(245,166,35,0.12);
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.flash-step.done .step-num {
+  background: rgba(0,212,170,0.12);
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.step-info h4 {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.step-info p {
+  font-size: 13.5px;
+  color: var(--slate);
+}
+
+.flash-controls {
+  margin-top: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.partition-note {
+  background: rgba(0,212,170,0.06);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--teal);
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.partition-note span { flex: 1; line-height: 1.5; }
+
+
+/* Progress bar */
+.progress-wrap {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progress-bar {
+  height: 6px;
+  background: var(--navy2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--teal), #00ffcc);
+  border-radius: 3px;
+  width: 0%;
+  transition: width .3s;
+  box-shadow: 0 0 8px rgba(0,212,170,0.4);
+}
+
+.progress-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--slate);
+}
+
+/* Terminal log */
+#flash-log {
+  background: var(--navy);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  height: 160px;
+  overflow-y: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--slate);
+  display: none;
+}
+
+#flash-log .log-ok { color: var(--teal); }
+#flash-log .log-err { color: var(--red); }
+#flash-log .log-info { color: var(--text2); }
+#flash-log .log-warn { color: var(--amber); }
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+footer {
+  background: var(--navy);
+  border-top: 1px solid var(--border);
+  padding: 48px 64px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.footer-brand { max-width: 320px; }
+
+.footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.footer-logo .egg-icon {
+  width: 22px; height: 22px;
+  background: radial-gradient(circle at 40% 35%, var(--teal), var(--teal2) 60%, #006650);
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+}
+
+.footer-brand p {
+  font-size: 13px;
+  color: var(--slate);
+  line-height: 1.6;
+}
+
+.footer-links {
+  display: flex;
+  gap: 56px;
+}
+
+.footer-col h4 {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 14px;
+  letter-spacing: 0.04em;
+}
+
+.footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+
+.footer-col li a {
+  font-size: 13px;
+  color: var(--slate);
+  transition: color .2s;
+}
+
+.footer-col li a:hover { color: var(--teal); }
+
+.footer-bottom {
+  border-top: 1px solid var(--border);
+  padding: 20px 64px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.footer-bottom p {
+  font-size: 12px;
+  color: var(--slate2);
+  font-family: var(--font-mono);
+}
+
+/* ============================================================
+   SCROLL REVEAL
+   ============================================================ */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity .6s ease, transform .6s ease;
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; }
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 900px) {
+  .hero { flex-direction: column; padding: 100px 32px 80px; align-items: flex-start; }
+  #radar-canvas { width: 300px !important; height: 300px !important; }
+  section { padding: 64px 32px; }
+  footer { padding: 40px 32px; }
+  .footer-bottom { padding: 20px 32px; }
+  nav { padding: 0 24px; }
+  .nav-links { display: none; }
+  .hero-stats { gap: 20px; }
+  .footer-links { gap: 32px; }
+  #oled-preview { flex-direction: column; gap: 48px; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <div class="egg-icon"></div>
+    Egg Sentinel
+  </div>
+  <ul class="nav-links">
+    <li><a href="#detect">Detections</a></li>
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#docs">Docs</a></li>
+    <li><a href="#flash" class="nav-cta">Flash Now</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="home">
+  <div class="hero-text">
+    <div class="hero-eyebrow">
+      <span class="dot" ></span>
+      Defensive Network Security
+    </div>
+    <h1>Your network's<br><span class="accent">guard dog</span><br>in an egg.</h1>
+    <p class="hero-sub">
+      Egg Sentinel runs on a £4 ESP32-C3 "egg" board and watches your Wi-Fi and Bluetooth for real attacks — deauth floods, evil-twin APs, ARP spoofing, and BLE spam. Flash it in 30 seconds. No code required.
+    </p>
+    <div class="hero-actions">
+      <a href="#flash" class="btn btn-primary">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1L1 9h5.5V15L15 7H9.5V1H8z" fill="currentColor"/></svg>
+        Flash to device
+      </a>
+      <a href="https://s.click.aliexpress.com/e/_c4oyN1mt" class="btn btn-primary" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M7 4h-2l-1 2v2h2l3.6 7.59-1.35 2.44A1 1 0 0010 20h8v-2h-7.42l.9-1.6H19a1 1 0 00.92-.62l1.58-4.2A1 1 0 0019.1 9H8.53" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="10" cy="21" r="1" fill="currentColor"/>
+          <circle cx="18" cy="21" r="1" fill="currentColor"/>
+        </svg>
+        Buy Egg Sentinel
+      </a>
+
+      <a href="https://github.com/NifftySwiggle/ESP32-C3-EggSentinel" class="btn btn-secondary" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        View source
+      </a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-item">
+        <span class="stat-value"><span class="teal">7</span></span>
+        <span class="stat-label">Threat types</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value"><span class="teal">24/7</span></span>
+        <span class="stat-label">Monitoring</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value"><span class="teal">Zero</span></span>
+        <span class="stat-label">code required</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="radar-wrap">
+    <canvas id="radar-canvas" width="420" height="420"></canvas>
+    <div class="radar-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#ff4d4f"></div>ALERT</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f5a623"></div>WARNING</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#00d4aa"></div>CLEAR</div>
+    </div>
+  </div>
+</section>
+
+<!-- DETECTIONS -->
+<section id="detect">
+  <div class="section-label">What it detects</div>
+  <h2>Threats it catches automatically</h2>
+  <p class="section-sub">Egg Sentinel monitors your network continuously, using the same management-frame inspection techniques found in commercial Wi-Fi IDS appliances.</p>
+
+  <div class="detect-grid reveal">
+    <div class="detect-card">
+      <div class="detect-icon">🔥</div>
+      <h3>Deauth / Disassoc Flood</h3>
+      <p>Sniffs unencrypted 802.11 management frames and flags floods — the classic sign of a Wi-Fi jamming or kick-everyone-off attack. Works against any tool sending deauth frames.</p>
+      <span class="detect-badge badge-always">Always on</span>
+    </div>
+    <div class="detect-card">
+      <div class="detect-icon red">👻</div>
+      <h3>Evil-Twin / Rogue AP</h3>
+      <p>Periodically scans for access points broadcasting your exact SSID from an unrecognised MAC address — a classic honeypot technique to intercept your devices' traffic.</p>
+      <span class="detect-badge badge-always">Always on</span>
+    </div>
+    <div class="detect-card">
+      <div class="detect-icon amber">🎭</div>
+      <h3>ARP Spoofing / MITM</h3>
+      <p>Watches your gateway's MAC address. An unexpected change is a strong signal of ARP cache poisoning — someone telling your network "I'm the router now."</p>
+      <span class="detect-badge badge-always">Always on</span>
+    </div>
+    <div class="detect-card">
+      <div class="detect-icon">📡</div>
+      <h3>New Device on LAN</h3>
+      <p>Periodically ARP-scans your subnet and alerts when an unrecognised device joins. You'll know the MAC and IP within 60 seconds of them connecting.</p>
+      <span class="detect-badge badge-always">Always on</span>
+    </div>
+    <div class="detect-card">
+      <div class="detect-icon amber">🔵</div>
+      <h3>BLE Advertisement Flood</h3>
+      <p>Detects abnormal bursts of Bluetooth LE advertisements — the signal produced by "BLE spam" attacks that pop fake pairing popups on iPhones, Android devices, and Windows PCs nearby.</p>
+      <span class="detect-badge badge-toggle">BLE toggle</span>
+    </div>
+    <div class="detect-card">
+      <div class="detect-icon">👁️</div>
+      <h3>New BLE Device Nearby</h3>
+      <p>Tracks Bluetooth LE devices that appear in range and alerts on new ones. Note: devices with MAC randomization (most modern phones) will rotate addresses — expected behaviour, not a bug.</p>
+      <span class="detect-badge badge-toggle">BLE toggle</span>
+    </div>
+    <div class="detect-card">
+      <div class="detect-icon red">⚡</div>
+      <h3>Port-Scan Detection</h3>
+      <p>Notices if something on your network is hammering the egg's own web server with rapid connection attempts — a sign that someone or something is actively scanning for open services.</p>
+      <span class="detect-badge badge-always">Always on</span>
+    </div>
+    <div class="detect-card">
+      <div class="detect-icon red">⚙️</div>
+      <h3>New detections coming</h3>
+      <p>Planned additions to Egg Sentinel — prioritized for security impact and reliability — next up: <strong>Signal anomalies</strong> and <strong>Suspicious DNS queries</strong>. v1.2 (coming soon).</p>
+      <span class="detect-badge badge-always">Coming soon</span>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="section-label">How it works</div>
+  <h2>From box to monitoring<br>in three minutes</h2>
+  <p class="section-sub">No code editing, no SSH, no secrets in firmware. Everything is configured on the device itself.</p>
+
+  <div class="timeline reveal">
+    <div class="tl-item">
+      <div class="tl-node">1</div>
+      <div class="tl-content">
+        <h3>Flash the firmware</h3>
+        <p>Plug your ESP32-C3 "egg" board into USB, hit the flash button below, and the web flasher installs the firmware directly from your browser — Chrome or Edge only, no drivers or tools required. Make sure to set the partition scheme first (see Docs).</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-node">2</div>
+      <div class="tl-content">
+        <h3>Join the setup hotspot</h3>
+        <p>On first boot, the egg broadcasts its own Wi-Fi network called <code>EggSentinel_Setup</code>. Join it from your phone or laptop — a setup page pops up automatically (captive portal). Pick your home network, enter the password, optionally add a Telegram bot for alerts.</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-node">3</div>
+      <div class="tl-content">
+        <h3>Monitor from the dashboard</h3>
+        <p>The egg reboots, joins your network, and starts scanning. Open <code>http://eggsentinel.local</code> on any device for the live dashboard: threat log, LAN device list, real-time stats, Telegram settings, and a Bluetooth detection toggle — all persistent, no reflashing needed.</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-node">4</div>
+      <div class="tl-content">
+        <h3>Get alerted — three ways</h3>
+        <p>The built-in 0.42″ OLED flashes and shows the guard-dog mascot on any detection. The web dashboard updates in real-time. And if you've set up a Telegram bot, you'll get a push notification on your phone within seconds of anything suspicious.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- OLED PREVIEW SECTION -->
+<section id="oled-preview">
+  <div class="oled-text reveal">
+    <div class="section-label">OLED display</div>
+    <h2>72 × 40 pixels of situational awareness</h2>
+    <p style="font-size:15px;color:var(--text2);line-height:1.7;margin-bottom:24px">The tiny built-in OLED cycles through four screens every 4 seconds. During any alert, it locks to the status view and flashes the entire display (hardware invert — zero extra RAM) until acknowledged.</p>
+    <ul style="list-style:none;display:flex;flex-direction:column;gap:10px">
+      <li style="display:flex;gap:10px;align-items:center;font-size:14px;color:var(--text2)"><span style="color:var(--teal);font-family:var(--font-mono);font-size:12px">HOME</span>Wi-Fi status, current alert or "all clear", uptime</li>
+      <li style="display:flex;gap:10px;align-items:center;font-size:14px;color:var(--text2)"><span style="color:var(--teal);font-family:var(--font-mono);font-size:12px">STATS</span>Deauth count, LAN device count, rogue AP count, RSSI</li>
+      <li style="display:flex;gap:10px;align-items:center;font-size:14px;color:var(--text2)"><span style="color:var(--teal);font-family:var(--font-mono);font-size:12px">NETWORK</span>IP address, gateway MAC, mDNS hostname</li>
+      <li style="display:flex;gap:10px;align-items:center;font-size:14px;color:var(--text2)"><span style="color:var(--amber);font-family:var(--font-mono);font-size:12px">SENTINEL</span>Animated dog mascot — idle, alert, or happy states</li>
+    </ul>
+  </div>
+  <div class="oled-screens reveal">
+    <div class="oled-frame" data-label="Home">
+      <div class="oled-screen"><canvas id="oled-home" width="72" height="40"></canvas></div>
+    </div>
+    <div class="oled-frame" data-label="Stats" style="transform:translateY(-16px)">
+      <div class="oled-screen"><canvas id="oled-stats" width="72" height="40"></canvas></div>
+    </div>
+    <div class="oled-frame" data-label="Alert!" style="transform:translateY(-8px)">
+      <div class="oled-screen"><canvas id="oled-alert" width="72" height="40"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<!-- DOCS -->
+<section id="docs">
+  <div class="section-label">Documentation</div>
+  <h2>Everything you need</h2>
+
+  <div class="docs-tabs">
+    <button class="tab-btn active" onclick="switchTab('setup')">Setup</button>
+    <button class="tab-btn" onclick="switchTab('partition')">Partition Fix</button>
+    <button class="tab-btn" onclick="switchTab('telegram')">Telegram</button>
+    <button class="tab-btn" onclick="switchTab('config')">Config Reference</button>
+    <button class="tab-btn" onclick="switchTab('limits')">Honest Limits</button>
+  </div>
+
+  <div id="tab-setup" class="tab-panel active reveal">
+    <div class="doc-section">
+      <h3>Hardware required</h3>
+      <p>Any ESP32-C3 "egg" board with a built-in 0.42″ SSD1306 OLED. These are widely available for a few pounds/dollars. The sketch is confirmed working with I²C on SDA=GPIO5 / SCL=GPIO6, which matches the most common egg board variant.</p>
+    </div>
+    <div class="doc-section">
+      <h3>Library Manager — install these four</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Library</th><th>Author</th><th>Notes</th></tr>
+          <tr><td>Adafruit GFX Library</td><td>Adafruit</td><td>Display primitives</td></tr>
+          <tr><td>Adafruit SSD1306</td><td>Adafruit</td><td>OLED driver</td></tr>
+          <tr><td>ArduinoJson</td><td>Benoit Blanchon</td><td>v7.x — newer API, deprecation warnings are harmless</td></tr>
+          <tr><td>NimBLE-Arduino</td><td>h2zero</td><td>Required for BLE detection. v2.x — tested on your exact setup</td></tr>
+        </table>
+      </div>
+      <p style="margin-top:12px">WiFi, WebServer, DNSServer, ESPmDNS, Preferences, WiFiClientSecure all ship with the ESP32 board package — nothing extra to install for those.</p>
+    </div>
+    <div class="doc-section">
+      <h3>Board settings</h3>
+      <div class="code-block">
+<span class="key">Board:</span>          <span class="val">ESP32C3 Dev Module</span>
+<span class="key">Partition Scheme:</span> <span class="val">Minimal SPIFFS (1.9MB APP with OTA)</span>  <span class="comment">← important! see Partition Fix tab</span>
+<span class="key">USB CDC On Boot:</span>  <span class="val">Enabled</span>  <span class="comment">← so Serial Monitor works over USB</span>
+<span class="key">CPU Frequency:</span>    <span class="val">160MHz (WiFi)</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-partition" class="tab-panel reveal">
+    <div class="doc-section">
+      <h3>Why this matters</h3>
+      <p>The default partition scheme ("Default 4MB with spiffs") gives the app only 1.2MB. With NimBLE added, the sketch needs ~1.5–1.9MB. The board has 4MB total flash — we just need to reallocate it.</p>
+      <div class="alert-box">⚠️ Skip this step and you'll get: <code>Sketch too big (111%)</code> even on a 4MB board.</div>
+    </div>
+    <div class="doc-section">
+      <h3>How to fix it (takes 10 seconds)</h3>
+      <ol>
+        <li>In Arduino IDE, open the <strong>Tools</strong> menu</li>
+        <li>Find <strong>Partition Scheme</strong></li>
+        <li>Change it to <strong>"Minimal SPIFFS (1.9MB APP with OTA)"</strong></li>
+        <li>Upload again — done</li>
+      </ol>
+      <p style="margin-top:14px">Egg Sentinel uses <code>Preferences</code> (NVS) for settings storage, not SPIFFS — so no filesystem space is actually needed. The "Minimal SPIFFS" scheme gives the app ~1.9MB while keeping a small NVS partition for saved settings.</p>
+      <p style="margin-top:10px">If that option isn't in your menu, alternatives that also work: <strong>"Huge APP (3MB No OTA)"</strong> or <strong>"No OTA (2MB APP/2MB SPIFFS)"</strong>.</p>
+    </div>
+  </div>
+
+  <div id="tab-telegram" class="tab-panel reveal">
+    <div class="doc-section">
+      <h3>Create a Telegram bot (~3 minutes)</h3>
+      <ol>
+        <li>Open Telegram and search for <strong>@BotFather</strong></li>
+        <li>Send <code>/newbot</code> and follow the prompts to pick a name</li>
+        <li>BotFather sends you a <strong>token</strong> like <code>123456789:AAH4kf...</code> — save it</li>
+        <li>Search for <strong>@userinfobot</strong>, send any message — it replies with your <strong>chat ID</strong> (a number like <code>987654321</code>)</li>
+        <li>Message your new bot once first ("hi" is fine) — bots can't message you until you've messaged them</li>
+      </ol>
+    </div>
+    <div class="doc-section">
+      <h3>Add the credentials</h3>
+      <p>Enter both values in the Egg Sentinel dashboard under <strong>Telegram alerts</strong> and hit Save. Click "Send test alert" to confirm it works. No reflashing ever needed to change Telegram settings.</p>
+      <p style="margin-top:10px">You can also enter them during the initial Wi-Fi setup wizard if you have them ready.</p>
+    </div>
+    <div class="doc-section">
+      <h3>Group alerts</h3>
+      <p>Create a Telegram group, add your bot to it, then use the group's chat ID instead (group IDs are negative numbers like <code>-100123456789</code> — that's normal).</p>
+    </div>
+  </div>
+
+  <div id="tab-config" class="tab-panel reveal">
+    <p style="font-size:14px;color:var(--text2);margin-bottom:20px">All of these constants are near the top of <code>EggSentinel.ino</code>. You only need to touch them if you want to tune detection sensitivity — the defaults are reasonable for a home network.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Constant</th><th>Default</th><th>What it does</th></tr>
+        <tr><td><code>DEAUTH_THRESHOLD</code></td><td>6</td><td>Deauth/disassoc frames within window to trigger alert</td></tr>
+        <tr><td><code>DEAUTH_WINDOW_MS</code></td><td>10000</td><td>Window for deauth counting (ms)</td></tr>
+        <tr><td><code>ARP_SCAN_INTERVAL_MS</code></td><td>60000</td><td>How often to scan the LAN for new devices</td></tr>
+        <tr><td><code>AP_SCAN_INTERVAL_MS</code></td><td>45000</td><td>How often to scan for rogue APs</td></tr>
+        <tr><td><code>ALERT_COOLDOWN_MS</code></td><td>30000</td><td>Minimum gap between repeats of the same alert type</td></tr>
+        <tr><td><code>BLE_SCAN_INTERVAL_MS</code></td><td>30000</td><td>How often a BLE burst scan fires</td></tr>
+        <tr><td><code>BLE_SCAN_DURATION_SEC</code></td><td>6</td><td>Length of each BLE scan burst (seconds)</td></tr>
+        <tr><td><code>BLE_SPAM_THRESHOLD</code></td><td>40</td><td>BLE adverts per burst to trigger a spam alert</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div id="tab-limits" class="tab-panel reveal">
+    <div class="doc-section">
+      <h3>What this can't do (important)</h3>
+      <p>Being upfront about hardware constraints so you don't rely on this for something it can't actually do:</p>
+      <ul style="margin-top:12px">
+        <li><strong>Can't see other devices' encrypted traffic.</strong> WPA2/WPA3 encrypts everything between devices and the router. Nothing can decrypt that without the key. This monitors network <em>behaviour</em> (who's on the network, what the gateway MAC is, whether management frames are flooding), not packet contents.</li>
+        <li style="margin-top:8px"><strong>Can't fingerprint a specific attacking device.</strong> We can detect a deauth flood or a BLE advertisement flood, but there's no signature that says "this was a Flipper Zero specifically" vs any other tool doing the same thing. The attack pattern is what's detectable, not the device.</li>
+        <li style="margin-top:8px"><strong>Can't see sub-GHz, NFC, IR, or RFID.</strong> These are completely different radio frequencies that a Wi-Fi/BLE chip has no hardware to receive. If a Flipper's using sub-GHz replay or NFC cloning nearby, this device has no way to know.</li>
+        <li style="margin-top:8px"><strong>BLE "new device" alerts have false positives.</strong> Modern phones and earbuds rotate their Bluetooth MAC addresses every few minutes for privacy. Your own phone may occasionally trigger a "new BLE device" alert. This is normal, expected BLE behaviour, not a flaw in detection.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- WEB FLASHER -->
+<section id="flash">
+  <div class="flasher-wrap">
+    <div class="section-label">Web flasher</div>
+    <h2>Flash directly from your browser</h2>
+    <p class="section-sub">Works in Chrome and Edge 89+ on Windows, macOS, and Linux. Requires USB connection. Safari is not supported (no Web Serial API).</p>
+
+    <div class="browser-warning" id="browser-warn">
+      ⚠️ Your browser doesn't support Web Serial. Please open this page in <strong>Chrome</strong> or <strong>Edge</strong> (desktop, version 89+).
+    </div>
+
+    <div class="flash-card">
+      <div class="flash-header">
+        <h3>🥚 Egg Sentinel Firmware</h3>
+        <div class="flash-step-indicators">
+          <div class="step-dot active" id="dot-1"></div>
+          <div class="step-dot" id="dot-2"></div>
+          <div class="step-dot" id="dot-3"></div>
+        </div>
+      </div>
+      <div class="flash-body">
+        <div class="flash-steps" style="margin-top:24px">
+          <div class="flash-step active" id="step-1">
+            <div class="step-num">1</div>
+            <div class="step-info">
+              <h4>Connect your board</h4>
+              <p>Plug the ESP32-C3 egg board into USB. Hold the BOOT button while pressing RST to enter flash mode if it doesn't connect automatically.</p>
+            </div>
+          </div>
+          <div class="flash-step" id="step-2">
+            <div class="step-num">2</div>
+            <div class="step-info">
+              <h4>Select the port</h4>
+              <p>Click "Connect" and pick your device from the browser popup. Look for CP210x, CH340, or JTAG/Serial.</p>
+            </div>
+          </div>
+          <div class="flash-step" id="step-3">
+            <div class="step-num">3</div>
+            <div class="step-info">
+              <h4>Flash and go</h4>
+              <p>Click "Flash firmware" and wait about 30 seconds. The egg will reboot automatically when done.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flash-controls">
+          <esp-web-install-button manifest="manifest.json" no-style>
+          <button id="flash-btn" slot="button">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            Flash firmware
+          </button>
+        </esp-web-install-button>
+
+
+          <div class="progress-wrap" id="progress-wrap">
+            <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+            <div class="progress-label" id="progress-label">Preparing…</div>
+          </div>
+
+          <div id="flash-log"></div>
+        </div>
+      </div>
+    </div>
+
+    <p style="font-size:13px;color:var(--slate);margin-top:16px;text-align:center">
+      Prefer to compile yourself? The full source is on <a href="https://github.com/NifftySwiggle/ESP32-C3-EggSentinel">GitHub</a> — just open <code>EggSentinel.ino</code> in Arduino IDE.
+    </p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-brand">
+    <div class="footer-logo">
+      <div class="egg-icon"></div>
+      Egg Sentinel
+    </div>
+    <p>An open-source defensive network security monitor for the ESP32-C3. Built by the community, for home networks that deserve a guard dog.</p>
+  </div>
+  <div class="footer-links">
+    <div class="footer-col">
+      <h4>Project</h4>
+      <ul>
+        <li><a href="https://github.com/NifftySwiggle/ESP32-C3-EggSentinel/tree/main">GitHub</a></li>
+        <li><a href="https://github.com/NifftySwiggle/ESP32-C3-EggSentinel/releases">Releases</a></li>
+        <li><a href="https://github.com/NifftySwiggle/ESP32-C3-EggSentinel/issues">Issues</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Docs</h4>
+      <ul>
+        <li><a href="#docs" onclick="switchTab('setup')">Setup guide</a></li>
+        <li><a href="#docs" onclick="switchTab('telegram')">Telegram setup</a></li>
+        <li><a href="#docs" onclick="switchTab('config')">Config reference</a></li>
+        <li><a href="#docs" onclick="switchTab('limits')">Honest limits</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+<div class="footer-bottom">
+  <p>🥚 Egg Sentinel</p>
+  <p>Created by NifftySwiggle</p>
+</div>
+
+
+<script>
+// ============================================================
+//  RADAR ANIMATION
+// ============================================================
+(function() {
+  const canvas = document.getElementById('radar-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = W / 2, cy = H / 2;
+  const R = Math.min(W, H) / 2 - 24;
+
+  // Colors
+  const TEAL   = '#00d4aa';
+  const AMBER  = '#f5a623';
+  const RED    = '#ff4d4f';
+  const NAVY   = '#060a14';
+  const SLATE  = '#8b93a7';
+
+  // Threat blips — each has a polar coordinate, type, label
+  const threats = [
+    { angle: 0.6,  dist: 0.55, type: 'clear',   label: 'Device OK',     color: TEAL  },
+    { angle: 1.4,  dist: 0.72, type: 'alert',    label: 'Deauth flood',  color: RED   },
+    { angle: 2.1,  dist: 0.38, type: 'clear',    label: 'Known device',  color: TEAL  },
+    { angle: 2.9,  dist: 0.61, type: 'warning',  label: 'New device',    color: AMBER },
+    { angle: 3.8,  dist: 0.45, type: 'alert',    label: 'Rogue AP',      color: RED   },
+    { angle: 4.5,  dist: 0.79, type: 'warning',  label: 'BLE spam',      color: AMBER },
+    { angle: 5.3,  dist: 0.30, type: 'clear',    label: 'Gateway OK',    color: TEAL  },
+    { angle: 5.9,  dist: 0.65, type: 'warning',  label: 'ARP change',    color: AMBER },
+  ];
+
+  // Track visibility of each blip
+  const blipState = threats.map(() => ({ visible: false, alpha: 0, labelAlpha: 0, pulseR: 0 }));
+
+  let sweepAngle = 0;
+  const SWEEP_SPEED = 0.008; // radians per frame
+
+  // Tail: circular buffer of recent sweep angles for the gradient trail
+  const TAIL_LEN = 80;
+  let frame = 0;
+
+  function drawRings() {
+    // Outer glow
+    const grd = ctx.createRadialGradient(cx, cy, R * 0.6, cx, cy, R);
+    grd.addColorStop(0, 'transparent');
+    grd.addColorStop(1, 'rgba(0,212,170,0.04)');
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Rings
+    [0.25, 0.5, 0.75, 1.0].forEach(fraction => {
+      ctx.beginPath();
+      ctx.arc(cx, cy, R * fraction, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(0,212,170,0.1)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+
+    // Cross hairs
+    ctx.strokeStyle = 'rgba(0,212,170,0.07)';
+    ctx.lineWidth = 1;
+    [0, Math.PI / 2, Math.PI, Math.PI * 1.5].forEach(a => {
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R);
+      ctx.stroke();
+    });
+
+    // Outer border
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0,212,170,0.25)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  function drawSweep() {
+    // Gradient tail (180 degrees)
+    const tailGrd = ctx.createConicalGradient
+      ? null // not widely supported
+      : null;
+
+    // Draw the tail as a filled arc with gradient opacity
+    // We approximate by drawing many thin arc slices
+    const TAIL_DEGREES = Math.PI * 0.55;
+    const SLICES = 40;
+    for (let i = 0; i < SLICES; i++) {
+      const t = i / SLICES;
+      const startA = sweepAngle - TAIL_DEGREES * (1 - t);
+      const endA   = sweepAngle - TAIL_DEGREES * (1 - (i + 1) / SLICES);
+      const alpha  = t * 0.18;
+
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, R - 1, startA, endA);
+      ctx.closePath();
+      ctx.fillStyle = `rgba(0,212,170,${alpha})`;
+      ctx.fill();
+    }
+
+    // Leading edge line
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(
+      cx + Math.cos(sweepAngle) * R,
+      cy + Math.sin(sweepAngle) * R
+    );
+    ctx.strokeStyle = TEAL;
+    ctx.lineWidth = 2;
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = TEAL;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Centre dot
+    ctx.beginPath();
+    ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+    ctx.fillStyle = TEAL;
+    ctx.fill();
+  }
+
+  function blipCartesian(t) {
+    const bx = cx + Math.cos(t.angle) * R * t.dist;
+    const by = cy + Math.sin(t.angle) * R * t.dist;
+    return { x: bx, y: by };
+  }
+
+  function angleDiff(a, b) {
+    // Signed angular difference (a - b) mod 2π, in range [0, 2π)
+    return ((a - b) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+  }
+
+  function drawBlips() {
+    threats.forEach((t, i) => {
+      const s = blipState[i];
+
+      // Check if sweep just passed this blip
+      const diff = angleDiff(sweepAngle, t.angle);
+      const TRIGGER_WINDOW = 0.12; // radians
+
+      if (diff < TRIGGER_WINDOW) {
+        s.visible = true;
+        s.alpha = 1;
+        s.labelAlpha = 1;
+        s.pulseR = 0;
+      }
+
+      if (!s.visible) return;
+
+      // Fade over time
+      s.alpha = Math.max(0, s.alpha - 0.004);
+      s.labelAlpha = Math.max(0, s.labelAlpha - 0.006);
+      s.pulseR = Math.min(s.pulseR + 0.7, 20);
+
+      const { x, y } = blipCartesian(t);
+
+      // Pulse ring
+      if (s.pulseR < 20) {
+        ctx.beginPath();
+        ctx.arc(x, y, s.pulseR, 0, Math.PI * 2);
+        ctx.strokeStyle = t.color;
+        ctx.globalAlpha = s.alpha * (1 - s.pulseR / 20) * 0.5;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+
+      // Core dot
+      ctx.globalAlpha = s.alpha;
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = t.color;
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = t.color;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Label
+      if (s.labelAlpha > 0) {
+        ctx.globalAlpha = s.labelAlpha;
+        ctx.font = '500 11px "JetBrains Mono", monospace';
+
+        // Position label so it doesn't go off canvas
+        let lx = x + 10, ly = y - 6;
+        const textW = ctx.measureText(t.label).width;
+        if (lx + textW > W - 8) lx = x - textW - 10;
+        if (ly < 12) ly = y + 16;
+
+        // Background pill
+        ctx.fillStyle = 'rgba(6,10,20,0.8)';
+        ctx.fillRect(lx - 3, ly - 10, textW + 6, 14);
+        ctx.fillStyle = t.color;
+        ctx.fillText(t.label, lx, ly);
+      }
+
+      ctx.globalAlpha = 1;
+    });
+  }
+
+  function drawTick() {
+    // Small tick markers at ring intersections
+    const TICKS = 36;
+    for (let i = 0; i < TICKS; i++) {
+      const a = (i / TICKS) * Math.PI * 2;
+      const isMain = i % 9 === 0;
+      const len = isMain ? 8 : 4;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * (R - len), cy + Math.sin(a) * (R - len));
+      ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R);
+      ctx.strokeStyle = isMain ? 'rgba(0,212,170,0.4)' : 'rgba(0,212,170,0.15)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+
+  function drawHUD() {
+    // Corner labels
+    ctx.font = '500 11px "JetBrains Mono", monospace';
+    ctx.fillStyle = 'rgba(0,212,170,0.35)';
+    ctx.fillText('N', cx - 5, cy - R + 14);
+    ctx.fillText('S', cx - 4, cy + R - 4);
+    ctx.fillText('E', cx + R - 14, cy + 4);
+    ctx.fillText('W', cx - R + 4, cy + 4);
+
+    // Range labels
+    ctx.fillStyle = 'rgba(139,147,167,0.5)';
+    ctx.font = '400 10px "JetBrains Mono", monospace';
+    ctx.fillText('25m',  cx + R * 0.25 + 3, cy - 3);
+    ctx.fillText('50m',  cx + R * 0.5 + 3,  cy - 3);
+    ctx.fillText('75m',  cx + R * 0.75 + 3, cy - 3);
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Background circle fill
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.fillStyle = '#050810';
+    ctx.fill();
+
+    drawRings();
+    drawTick();
+    drawHUD();
+    drawSweep();
+    drawBlips();
+
+    sweepAngle = (sweepAngle + SWEEP_SPEED) % (Math.PI * 2);
+    frame++;
+    requestAnimationFrame(render);
+  }
+
+  render();
+})();
+
+// ============================================================
+//  OLED CANVAS MINI-DISPLAYS
+// ============================================================
+(function() {
+  function drawOled(canvasId, drawFn) {
+    const c = document.getElementById(canvasId);
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, 72, 40);
+    ctx.fillStyle = '#00ff99';
+    ctx.font = '5px monospace';
+    drawFn(ctx);
+  }
+
+  function drawText(ctx, txt, x, y, size = 1) {
+    ctx.font = `${5 * size}px monospace`;
+    ctx.fillText(txt, x, y);
+  }
+
+  // Home page: WiFi OK, All clear, uptime
+  drawOled('oled-home', ctx => {
+    ctx.fillStyle = '#00ff99';
+    drawText(ctx, 'WiFi OK', 2, 7);
+    // circle icon top-right
+    ctx.beginPath();
+    ctx.arc(68, 5, 3, 0, Math.PI * 2);
+    ctx.strokeStyle = '#00ff99';
+    ctx.lineWidth = 0.7;
+    ctx.stroke();
+    drawText(ctx, 'All clear', 2, 18);
+    drawText(ctx, '2h14m', 2, 36);
+  });
+
+  // Stats page
+  drawOled('oled-stats', ctx => {
+    ctx.fillStyle = '#00ff99';
+    drawText(ctx, 'Deauth:0', 2, 7);
+    drawText(ctx, 'LAN:6 BLE:3', 2, 17);
+    drawText(ctx, 'Rogue:0 Spam:0', 2, 27);
+    drawText(ctx, 'RSSI:-51', 2, 37);
+  });
+
+  // Alert state (with crude dog head and invert-like flash)
+  let alertFlash = true;
+  function drawAlert() {
+    const c = document.getElementById('oled-alert');
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    alertFlash = !alertFlash;
+
+    if (alertFlash) {
+      ctx.fillStyle = '#00ff99';
+      ctx.fillRect(0, 0, 72, 40);
+      ctx.fillStyle = '#000';
+    } else {
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, 72, 40);
+      ctx.fillStyle = '#00ff99';
+    }
+
+    ctx.font = '5px monospace';
+    ctx.fillText('ON GUARD', 2, 7);
+
+    // Simple dog head at centre
+    const dx = 36, dy = 22;
+    ctx.fillStyle = alertFlash ? '#000' : '#00ff99';
+    // Head
+    ctx.fillRect(dx - 7, dy - 5, 14, 10);
+    // Ears back
+    ctx.fillRect(dx - 11, dy - 4, 4, 3);
+    ctx.fillRect(dx + 7, dy - 4, 4, 3);
+    // Eyes (slits)
+    ctx.fillStyle = alertFlash ? '#00ff99' : '#000';
+    ctx.fillRect(dx - 4, dy - 2, 2, 1);
+    ctx.fillRect(dx + 2, dy - 2, 2, 1);
+    // Mouth/teeth
+    ctx.fillRect(dx - 3, dy + 3, 6, 2);
+  }
+
+  drawAlert();
+  setInterval(drawAlert, 500);
+})();
+
+// ============================================================
+//  SCROLL REVEAL
+// ============================================================
+const revealEls = document.querySelectorAll('.reveal');
+const revealObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      revealObs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.08 });
+revealEls.forEach(el => revealObs.observe(el));
+
+// ============================================================
+//  TABS
+// ============================================================
+function switchTab(id) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    if (b.getAttribute('onclick').includes(id)) b.classList.add('active');
+  });
+  document.getElementById('docs').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ============================================================
+//  WEB SERIAL FLASHER
+// ============================================================
+
+</script>
+<script type="module" src="https://unpkg.com/esp-web-tools@9/dist/web/install-button.js"></script>
+<script>
+document.addEventListener("esp-web-install-progress", (e) => {
+  const pct = Math.round(e.detail.percentage);
+  setProgress(pct, e.detail.message);
+  log(e.detail.message, 'info');
+});
+
+document.addEventListener("esp-web-install-log", (e) => {
+  log(e.detail, 'info');
+});
+
+document.addEventListener("esp-web-install-complete", () => {
+  setProgress(100, "Done!");
+  log("Firmware flashed successfully!", "ok");
+});
+
+</script>
+<script>
+(async () => {
+  // Wait for the component to be defined
+  await customElements.whenDefined('esp-web-install-button');
+
+  const ewt = document.querySelector('esp-web-install-button');
+  if (!ewt) return;
+
+  // Try to set CSS custom properties on the host (if component supports them)
+  try {
+    ewt.style.setProperty('--ewt-button-bg', 'var(--amber)');
+    ewt.style.setProperty('--ewt-button-color', 'var(--navy)');
+  } catch (e) {}
+
+  // MutationObserver to catch internal button swaps
+ const applyStylesToInternal = (btn) => {
+  if (!btn) return;
+
+  // Read the teal connect colors from your root variables
+  const root = getComputedStyle(document.documentElement);
+  const bg = root.getPropertyValue('--teal').trim() || '#00d4aa';
+  const fg = root.getPropertyValue('--navy').trim() || '#001f2d';
+
+  btn.style.background = bg;
+  btn.style.color = fg;
+  btn.style.padding = '14px 28px';
+  btn.style.borderRadius = '10px';
+  btn.style.border = 'none';
+  btn.style.display = 'inline-flex';
+  btn.style.alignItems = 'center';
+  btn.style.justifyContent = 'center';
+  btn.style.gap = '10px';
+  btn.style.fontFamily = 'var(--font-display)';
+  btn.style.fontWeight = '700';
+  btn.style.boxShadow = '0 8px 24px rgba(0,212,170,0.18)';
+  btn.style.transition = 'all .18s ease';
+
+  // Ensure any SVG inside follows text color
+  const svgs = btn.querySelectorAll('svg, svg path, svg circle');
+  svgs.forEach(s => {
+    s.style.stroke = 'currentColor';
+    s.style.fill = 'currentColor';
+  });
+};
+
+
+  // If shadowRoot is open, try to access it
+  try {
+    const shadow = ewt.shadowRoot;
+    if (shadow) {
+      const findAndStyle = () => {
+        const internalBtn = shadow.querySelector('button');
+        if (internalBtn) applyStylesToInternal(internalBtn);
+      };
+      findAndStyle();
+
+      const obs = new MutationObserver(() => findAndStyle());
+      obs.observe(shadow, { childList: true, subtree: true, attributes: true });
+    }
+  } catch (err) {
+    // shadowRoot might be closed — fallback to observing host for attribute changes
+    const hostObs = new MutationObserver(() => {
+      // try to find a slotted button (fallback)
+      const slotted = ewt.querySelector('button[slot="button"]');
+      if (slotted) {
+        slotted.style.display = 'inline-flex';
+        slotted.style.background = 'var(--amber)';
+        slotted.style.color = 'var(--navy)';
+      }
+    });
+    hostObs.observe(ewt, { attributes: true, childList: true, subtree: true });
+  }
+})();
+</script>
+<script>
+(async () => {
+  await customElements.whenDefined('esp-web-install-button');
+  const host = document.querySelector('esp-web-install-button');
+  if (!host) return;
+
+  // Helper: find the real clickable button (open shadowRoot preferred)
+  function findInternalButton() {
+    try {
+      if (host.shadowRoot) {
+        return host.shadowRoot.querySelector('button');
+      }
+    } catch (e) {}
+    // fallback to slotted button if you provided one
+    return host.querySelector('button[slot="button"]') || null;
+  }
+
+  // Save original content so we can restore it
+  let originalHTML = null;
+  let originalText = null;
+
+  // Small inline spinner SVG (keeps it self-contained)
+  const spinnerSVG = `
+    <svg class="ewt-spinner" width="16" height="16" viewBox="0 0 50 50" aria-hidden="true" focusable="false">
+      <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-dasharray="31.4 31.4" transform="rotate(-90 25 25)"></circle>
+    </svg>`.trim();
+
+  // Apply the teal "Connect" look inline (guaranteed)
+  function styleInternalButton(btn) {
+    if (!btn) return;
+    btn.style.display = 'inline-flex';
+    btn.style.alignItems = 'center';
+    btn.style.gap = '10px';
+    btn.style.padding = '14px 28px';
+    btn.style.borderRadius = '10px';
+    btn.style.border = 'none';
+    btn.style.cursor = 'pointer';
+    btn.style.fontFamily = 'var(--font-display)';
+    btn.style.fontSize = '15px';
+    btn.style.fontWeight = '700';
+    btn.style.background = getComputedStyle(document.documentElement).getPropertyValue('--teal') || '#00d4aa';
+    btn.style.color = getComputedStyle(document.documentElement).getPropertyValue('--navy') || '#001f2d';
+    btn.style.boxShadow = '0 8px 24px rgba(0,212,170,0.18)';
+    btn.style.transition = 'all .18s ease';
+    // ensure svg icons follow text color
+    const svgs = btn.querySelectorAll('svg, svg path, svg circle');
+    svgs.forEach(s => { s.style.stroke = 'currentColor'; s.style.fill = 'currentColor'; });
+  }
+
+  // Set busy content: spinner + label
+  function setBusy(pct) {
+    const btn = findInternalButton();
+    if (!btn) return;
+    if (originalHTML === null) {
+      originalHTML = btn.innerHTML;
+      originalText = btn.textContent.trim();
+    }
+    styleInternalButton(btn);
+    btn.disabled = true;
+    const label = pct != null ? `Flashing ${pct}%` : 'Flashing…';
+    btn.innerHTML = `${spinnerSVG}<span class="ewt-btn-label">${label}</span>`;
+    // animate spinner via inline CSS (keeps it inside shadow if needed)
+    const spinner = btn.querySelector('.ewt-spinner circle');
+    if (spinner) {
+      spinner.style.transformOrigin = '25px 25px';
+      spinner.style.animation = 'ewt-rotate 1s linear infinite';
+    }
+  }
+
+  // Restore original button
+  function restoreButton(success = false, message = null) {
+    const btn = findInternalButton();
+    if (!btn) return;
+    btn.disabled = false;
+    if (success) {
+      btn.innerHTML = '✓ Done';
+      btn.style.background = 'linear-gradient(90deg, var(--teal), #00ffcc)';
+      btn.style.color = 'var(--navy)';
+      setTimeout(() => {
+        if (originalHTML !== null) btn.innerHTML = originalHTML;
+        // restore original background
+        btn.style.background = '';
+        btn.style.boxShadow = '';
+      }, 1400);
+    } else if (message) {
+      btn.innerHTML = message;
+      btn.style.background = 'var(--red)';
+      btn.style.color = '#fff';
+      setTimeout(() => {
+        if (originalHTML !== null) btn.innerHTML = originalHTML;
+        btn.style.background = '';
+        btn.style.boxShadow = '';
+      }, 2000);
+    } else {
+      if (originalHTML !== null) btn.innerHTML = originalHTML;
+      btn.style.background = '';
+      btn.style.boxShadow = '';
+    }
+  }
+
+  // Wire up esp-web events to update UI + your existing progress/log functions
+  document.addEventListener('esp-web-install-start', () => {
+    setProgress(5, 'Preparing flash…');
+    log('Starting flash…', 'info');
+    setBusy(null);
+  });
+
+  document.addEventListener('esp-web-install-progress', (e) => {
+    const pct = Math.round(e.detail.percentage || 0);
+    setProgress(pct, e.detail.message || `Flashing: ${pct}%`);
+    log(e.detail.message || `Flashing: ${pct}%`, 'info');
+    setBusy(pct);
+  });
+
+  document.addEventListener('esp-web-install-complete', () => {
+    setProgress(100, 'Done!');
+    log('Firmware flashed successfully!', 'ok');
+    restoreButton(true);
+  });
+
+  document.addEventListener('esp-web-install-error', (e) => {
+    const msg = (e && e.detail && e.detail.message) ? e.detail.message : 'Flash failed';
+    setProgress(0, 'Error');
+    log('Flash error: ' + msg, 'err');
+    restoreButton(false, 'Error');
+  });
+
+  // Add the spinner keyframes to the document (once)
+  if (!document.getElementById('ewt-spinner-anim')) {
+    const s = document.createElement('style');
+    s.id = 'ewt-spinner-anim';
+    s.textContent = `
+      @keyframes ewt-rotate { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      /* small label tweak inside the internal button */
+      esp-web-install-button::part(button) .ewt-btn-label { font-family: var(--font-display); font-weight:700; }
+    `;
+    document.head.appendChild(s);
+  }
+
+  // Ensure initial styling if the internal button already exists
+  const initialBtn = findInternalButton();
+  if (initialBtn) styleInternalButton(initialBtn);
+
+  // Observe host to reapply style if component recreates the button
+  const hostObs = new MutationObserver(() => {
+    const b = findInternalButton();
+    if (b) {
+      // if flashing is in progress, keep busy look; otherwise ensure connect style
+      styleInternalButton(b);
+    }
+  });
+  hostObs.observe(host, { childList: true, subtree: true, attributes: true });
+})();
+</script>
+
+
+
+</body>
+</html>
