@@ -21,7 +21,7 @@ This is the easiest method. No Arduino IDE needed.
 
 ### Option 2 — Flash Manually
 Download the merged firmware BIN:
-👉 [EggSentinel.bin](./release/EggSentinel.bin)
+👉 [EggSentinel.bin](EggSentinel.bin)
 
 Use any flashing tool you prefer.
 My recommended tool is [ESP‑Connect](https://thelastoutpostworkshop.github.io/ESPConnect/)
