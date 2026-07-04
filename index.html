@@ -227,11 +227,80 @@ h1 .accent { color: var(--teal); }
   max-width: 460px;
 }
 
+/* container */
 .hero-actions {
   display: flex;
-  gap: 14px;
+  gap: 12px;
   flex-wrap: wrap;
+  align-items: stretch; /* stretch so cards share same height */
 }
+
+
+.btn.card { width: 200px; 
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  height: 48px;            /* fixed height for uniformity */
+  min-width: 180px;        /* consistent minimum width */
+  border-radius: 10px;
+  text-decoration: none;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease;
+  border: none;
+  box-sizing: border-box;
+  justify-content: flex-start;
+}
+
+/* icon box: fixed square so all icons align */
+.btn.card .icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  flex: 0 0 28px;
+  color: inherit;
+}
+
+/* ensure SVGs don't add extra whitespace and scale to the icon box */
+.btn.card .icon svg {
+  display: block;          /* removes inline baseline gaps */
+  width: 18px;             /* visual icon size inside the 28px box */
+  height: 18px;
+}
+
+/* label: keep single line and centered vertically */
+.btn.card .label {
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1;
+}
+
+/* variants (reuse your variables) */
+.btn.card.primary { background: var(--teal); color: var(--navy); }
+.btn.card.primary:hover { background: #00ffcc; color: var(--navy); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,212,170,0.3); }
+
+.btn.card.secondary { background: transparent; color: var(--text); border: 1px solid var(--border2); }
+.btn.card.secondary:hover { border-color: var(--teal); color: var(--teal); transform: translateY(-1px); }
+
+.btn.card .icon { width: 28px; height: 28px; display:inline-flex; align-items:center; justify-content:center; }
+.btn.card .icon svg { display:block; width:18px; height:28px; }
+
+/* responsive: stack on small screens */
+@media (max-width: 520px) {
+  .hero-actions { flex-direction: column; }
+  .btn.card { width: 100%; min-width: 0; justify-content: center; gap: 10px; }
+  .btn.card .label { text-align: center; }
+}
+
 
 .btn {
   display: inline-flex;
@@ -376,22 +445,24 @@ h2 {
 
 .detect-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 2px;
   background: var(--border);
   border: 1px solid var(--border);
   border-radius: 16px;
   overflow: hidden;
 }
-/* Center the last card when a row is incomplete */
-.detect-grid > *:last-child {
-  justify-self: center;
-  max-width: 560px; /* adjust to taste */
+
+@media (max-width: 1120px) {
+  .detect-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
-/* Make sure the centered card doesn't stretch full width on narrow screens */
-@media (max-width: 600px) {
-  .detect-grid > *:last-child { max-width: none; justify-self: stretch; }
+@media (max-width: 640px) {
+  .detect-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .detect-card {
@@ -1014,9 +1085,11 @@ footer {
     Egg Sentinel
   </div>
   <ul class="nav-links">
+    <li><a href="#device-showcase">Device</a></li>
     <li><a href="#detect">Detections</a></li>
     <li><a href="#how">How It Works</a></li>
     <li><a href="#docs">Docs</a></li>
+    <li><a href="https://s.click.aliexpress.com/e/_c4oyN1mt" class="nav-cta">Buy Now</a></li>
     <li><a href="#flash" class="nav-cta">Flash Now</a></li>
   </ul>
 </nav>
@@ -1030,27 +1103,48 @@ footer {
     </div>
     <h1>Your network's<br><span class="accent">guard dog</span><br>in an egg.</h1>
     <p class="hero-sub">
-      Egg Sentinel runs on a £4 ESP32-C3 "egg" board and watches your Wi-Fi and Bluetooth for real attacks — deauth floods, evil-twin APs, ARP spoofing, and BLE spam. Flash it in 30 seconds. No code required.
+      Egg Sentinel runs on a ESP32-C3 board and watches your Wi-Fi and Bluetooth for real attacks — deauth floods, evil-twin APs, ARP spoofing, and BLE spam. Flash it in 30 seconds. No code required.
     </p>
-    <div class="hero-actions">
-      <a href="#flash" class="btn btn-primary">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1L1 9h5.5V15L15 7H9.5V1H8z" fill="currentColor"/></svg>
-        Flash to device
-      </a>
-      <a href="https://s.click.aliexpress.com/e/_c4oyN1mt" class="btn btn-primary" target="_blank" rel="noopener">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M7 4h-2l-1 2v2h2l3.6 7.59-1.35 2.44A1 1 0 0010 20h8v-2h-7.42l.9-1.6H19a1 1 0 00.92-.62l1.58-4.2A1 1 0 0019.1 9H8.53" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="10" cy="21" r="1" fill="currentColor"/>
-          <circle cx="18" cy="21" r="1" fill="currentColor"/>
-        </svg>
-        Buy Egg Sentinel
+   <div class="hero-actions">
+      <a href="#flash" class="btn card primary">
+        <span class="icon" aria-hidden="true">
+          <!-- keep your existing SVG here -->
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M8 1L1 9h5.5V15L15 7H9.5V1H8z" fill="currentColor"/></svg>
+        </span>
+        <span class="label">Flash to device</span>
       </a>
 
-      <a href="https://github.com/NifftySwiggle/ESP32-C3-EggSentinel" class="btn btn-secondary" target="_blank" rel="noopener">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-        View source
+      <a href="https://s.click.aliexpress.com/e/_c4oyN1mt" class="btn card primary" target="_blank" rel="noopener" aria-label="Buy Egg Sentinel">
+        <span class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true">
+            <path d="M7 4h-2l-1 2v2h2l3.6 7.59-1.35 2.44A1 1 0 0010 20h8v-2h-7.42l.9-1.6H19a1 1 0 00.92-.62l1.58-4.2A1 1 0 0019.1 9H8.53" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="10" cy="21" r="1" fill="currentColor"/>
+            <circle cx="18" cy="21" r="1" fill="currentColor"/>
+          </svg>
+        </span>
+        <span class="label">Buy Egg Sentinel</span>
+      </a>
+
+      <a href="https://github.com/NifftySwiggle/ESP32-C3-EggSentinel" class="btn card secondary" target="_blank" rel="noopener" aria-label="GitHub repository">
+        <span class="icon" aria-hidden="true">
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </span>
+        <span class="label">Github Repo</span>
+      </a>
+
+      <a href="https://nifftyswiggle.com" class="btn card secondary" target="_blank" rel="noopener" aria-label="NifftySwiggle homepage">
+        <span class="icon" aria-hidden="true">
+          <!-- your rotated swiggle SVG (keeps original path) -->
+          <svg viewBox="0 -6 17 64" width="16" height="16" aria-hidden="true" role="img">
+            <g transform="translate(-21.5 -8)">
+              <path d="M16 32 C16 16, 32 16, 32 32 C32 48, 48 48, 48 32" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round"/>
+            </g>
+          </svg>
+        </span>
+        <span class="label">NifftySwiggle</span>
       </a>
     </div>
+
     <div class="hero-stats">
       <div class="stat-item">
         <span class="stat-value"><span class="teal">7</span></span>
@@ -1076,6 +1170,699 @@ footer {
     </div>
   </div>
 </section>
+
+<!-- ============================================================
+  EGG SENTINEL — 3D Board Showcase Widget
+  Drop this entire block anywhere in your website HTML.
+  Requires: Three.js (loaded from CDN inside the widget itself)
+  No other dependencies needed.
+  ============================================================ -->
+
+<div style="width:100%;background:#060a14;border-radius:16px;overflow:hidden;position:relative;user-select:none">
+<canvas id="c" style="display:block;width:100%;height:540px;cursor:grab"></canvas>
+
+<!-- HUD -->
+<div style="position:absolute;top:14px;left:18px;right:18px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none">
+  <div>
+    <div style="font-family:monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#00d4aa;margin-bottom:3px">EGG SENTINEL</div>
+    <div id="mlabel" style="font-family:sans-serif;color:#e8edf5;font-size:15px;font-weight:700">All clear</div>
+  </div>
+  <div id="sdot" style="width:9px;height:9px;border-radius:50%;background:#00d4aa;margin-top:4px;box-shadow:0 0 8px #00d4aa;transition:background .3s,box-shadow .3s"></div>
+</div>
+<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(6,10,20,.95));padding:14px 16px 16px;display:flex;gap:7px;flex-wrap:wrap;justify-content:center">
+  <button onclick="setM(0)" id="b0" style="background:rgba(0,212,170,.15);border:1px solid #00d4aa;color:#00d4aa;padding:7px 14px;border-radius:7px;font-size:10px;letter-spacing:.07em;cursor:pointer;font-family:monospace;transition:all .2s">ALL CLEAR</button>
+  <button onclick="setM(1)" id="b1" style="background:transparent;border:1px solid rgba(255,255,255,.12);color:#8b93a7;padding:7px 14px;border-radius:7px;font-size:10px;letter-spacing:.07em;cursor:pointer;font-family:monospace;transition:all .2s">DEAUTH ALERT</button>
+  <button onclick="setM(2)" id="b2" style="background:transparent;border:1px solid rgba(255,255,255,.12);color:#8b93a7;padding:7px 14px;border-radius:7px;font-size:10px;letter-spacing:.07em;cursor:pointer;font-family:monospace;transition:all .2s">ROGUE AP</button>
+  <button onclick="setM(3)" id="b3" style="background:transparent;border:1px solid rgba(255,255,255,.12);color:#8b93a7;padding:7px 14px;border-radius:7px;font-size:10px;letter-spacing:.07em;cursor:pointer;font-family:monospace;transition:all .2s">BLE SCAN</button>
+  <button onclick="setM(4)" id="b4" style="background:transparent;border:1px solid rgba(255,255,255,.12);color:#8b93a7;padding:7px 14px;border-radius:7px;font-size:10px;letter-spacing:.07em;cursor:pointer;font-family:monospace;transition:all .2s">NEW DEVICE</button>
+</div>
+<div id="hint" style="position:absolute;top:50%;right:12px;transform:translateY(-50%);font-family:monospace;font-size:9px;letter-spacing:.06em;color:rgba(139,147,167,.35);writing-mode:vertical-lr;pointer-events:none;transition:opacity .5s">DRAG TO ROTATE</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script>
+(function(){
+const canvas = document.getElementById('c');
+const H = 540;
+let W = canvas.parentElement.offsetWidth || 600;
+canvas.width = W; canvas.height = H;
+
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+renderer.setSize(W, H);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(42, W/H, 0.1, 100);
+camera.position.set(0, 1.8, 5.8);
+camera.lookAt(0, 0.1, 0);
+
+// Lights
+scene.add(new THREE.AmbientLight(0x1a2535, 1.4));
+const key = new THREE.DirectionalLight(0x7fb8ff, 1.6);
+key.position.set(2, 6, 5); key.castShadow = true; scene.add(key);
+const fill = new THREE.DirectionalLight(0x002233, 0.7);
+fill.position.set(-5, 2, -2); scene.add(fill);
+const top = new THREE.DirectionalLight(0x334455, 0.5);
+top.position.set(0, 8, 0); scene.add(top);
+const rim = new THREE.PointLight(0x00d4aa, 0.5, 20);
+rim.position.set(-3, 4, -3); scene.add(rim);
+const aL = new THREE.PointLight(0xff3300, 0, 10);
+aL.position.set(0, 3, 2); scene.add(aL);
+const bL = new THREE.PointLight(0x3355ff, 0, 10);
+bL.position.set(0, 3, 2); scene.add(bL);
+
+// Materials
+const blackPCB   = new THREE.MeshStandardMaterial({color:0x0a0a0a, roughness:0.55, metalness:0.1});
+const blackMatte = new THREE.MeshStandardMaterial({color:0x111111, roughness:0.9, metalness:0.0});
+const goldMat    = new THREE.MeshStandardMaterial({color:0xd4a017, roughness:0.25, metalness:0.95});
+const silverMat  = new THREE.MeshStandardMaterial({color:0xcccccc, roughness:0.2, metalness:0.95});
+const darkGray   = new THREE.MeshStandardMaterial({color:0x2a2a2a, roughness:0.7, metalness:0.1});
+const whiteMat   = new THREE.MeshStandardMaterial({color:0xffffff, roughness:0.9});
+
+const board = new THREE.Group();
+scene.add(board);
+
+// ─── PCB BODY: square-ish, black, rounded feel ───
+// Main body: 20.5mm × 25mm proportional → 2.05 × 2.5 units
+const pcbW=2.05, pcbD=2.5, pcbH=0.12;
+const pcbGeo = new THREE.BoxGeometry(pcbW, pcbH, pcbD);
+const pcb = new THREE.Mesh(pcbGeo, blackPCB);
+pcb.castShadow = true; pcb.receiveShadow = true;
+board.add(pcb);
+
+// PCB edge trim (slightly lighter edge to show thickness)
+const edgeMat = new THREE.MeshStandardMaterial({color:0x1a1a1a, roughness:0.8, metalness:0.0});
+[[pcbW,pcbH*2,0.01],[0.01,pcbH*2,pcbD]].forEach(([w,h,d],i)=>{
+  const em = new THREE.Mesh(new THREE.BoxGeometry(w,h,d),edgeMat);
+  board.add(em);
+});
+
+// ─── OLED SCREEN — dominates the face ───
+// The screen is nearly the full width, centred
+const scrW=1.5, scrD=1.5;
+const oledBezel = new THREE.Mesh(new THREE.BoxGeometry(scrW+0.08,0.06,scrD+0.08),
+  new THREE.MeshStandardMaterial({color:0x050505,roughness:0.8}));
+oledBezel.position.set(0, pcbH/2+0.03, 0.1);
+board.add(oledBezel);
+
+// Screen canvas — we'll draw on this every frame
+const scrCanvas = document.createElement('canvas');
+scrCanvas.width = 256; scrCanvas.height = 256;
+const scrCtx = scrCanvas.getContext('2d');
+const scrTex = new THREE.CanvasTexture(scrCanvas);
+const screenMat = new THREE.MeshStandardMaterial({
+  map: scrTex,
+  emissiveMap: scrTex,
+  emissive: new THREE.Color(1,1,1),
+  emissiveIntensity: 0.85,
+  roughness: 1,
+  metalness: 0
+});
+const screen = new THREE.Mesh(new THREE.PlaneGeometry(scrW, scrD), screenMat);
+screen.rotation.x = -Math.PI/2;
+screen.position.set(0, pcbH/2+0.062, 0.1);
+board.add(screen);
+
+// Screen glow light
+const oledGlow = new THREE.PointLight(0x00ff88, 0.3, 3);
+oledGlow.position.set(0, 1.2, 0.1);
+scene.add(oledGlow);
+
+// ─── TWO BUTTONS AT TOP ───
+const btnGeo = new THREE.BoxGeometry(0.28, 0.12, 0.28);
+const btnMat = new THREE.MeshStandardMaterial({color:0x1a1a1a, roughness:0.6, metalness:0.2});
+const btnCapMat = new THREE.MeshStandardMaterial({color:0x333333, roughness:0.5, metalness:0.3});
+[-0.5, 0.5].forEach(x => {
+  const btn = new THREE.Mesh(btnGeo, btnMat);
+  btn.position.set(x, pcbH/2+0.06, -1.1);
+  board.add(btn);
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.04, 16), btnCapMat);
+  cap.position.set(x, pcbH/2+0.13, -1.1);
+  board.add(cap);
+});
+
+// USB-C at BOTTOM (per photo: USB-C connector at bottom centre)
+const usbBody = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.2, 0.3), silverMat);
+usbBody.position.set(0, 0, 1.38);
+board.add(usbBody);
+const usbPort = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.1, 0.32),
+  new THREE.MeshStandardMaterial({color:0x080808}));
+usbPort.position.set(0, 0.02, 1.39);
+board.add(usbPort);
+// USB-C oval port detail
+const usbOval = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.1, 20),
+  new THREE.MeshStandardMaterial({color:0x111111, roughness:0.9}));
+usbOval.rotation.x = Math.PI/2;
+usbOval.scale.x = 2.2;
+usbOval.position.set(0, 0.02, 1.4);
+board.add(usbOval);
+
+// ─── GOLD CASTELLATED PADS — both sides, 8 per side ───
+// Left side (x = -pcbW/2) and right side (x = +pcbW/2)
+// Per photo: pads run along full height, paired/castellated look
+const padGeo = new THREE.BoxGeometry(0.18, 0.06, 0.18);
+for(let i=0; i<8; i++){
+  const z = -0.9 + i * 0.25;
+  [-1.06, 1.06].forEach(x => {
+    // Outer pad (castellated, gold)
+    const pad = new THREE.Mesh(padGeo, goldMat);
+    pad.position.set(x, 0, z);
+    board.add(pad);
+    // Hole cutout (dark circle)
+    const hole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04, 0.04, 0.07, 12),
+      new THREE.MeshStandardMaterial({color:0x050505})
+    );
+    hole.position.set(x, 0.01, z);
+    board.add(hole);
+    // Inner pad on PCB surface
+    const ipad = new THREE.Mesh(
+      new THREE.BoxGeometry(0.12, 0.005, 0.12), goldMat);
+    ipad.position.set(x*0.82, pcbH/2, z);
+    board.add(ipad);
+  });
+}
+
+// ─── PWR (red) and IO8 (blue) LEDs at bottom ───
+const pwrLedMat = new THREE.MeshStandardMaterial({
+  color:0x440000, emissive:new THREE.Color(1,0,0), emissiveIntensity:2, roughness:1});
+const io8LedMat = new THREE.MeshStandardMaterial({
+  color:0x000033, emissive:new THREE.Color(0,0.2,1), emissiveIntensity:2, roughness:1});
+const ledGeo = new THREE.BoxGeometry(0.07, 0.05, 0.1);
+const pwrLed = new THREE.Mesh(ledGeo, pwrLedMat);
+pwrLed.position.set(-0.4, pcbH/2+0.025, 0.95);
+board.add(pwrLed);
+const io8Led = new THREE.Mesh(ledGeo, io8LedMat);
+io8Led.position.set(0.4, pcbH/2+0.025, 0.95);
+board.add(io8Led);
+
+// LED glow points
+const pwrGlow = new THREE.PointLight(0xff0000, 0.3, 2);
+pwrGlow.position.set(-0.4, 0.5, 0.95); scene.add(pwrGlow);
+const io8Glow = new THREE.PointLight(0x0044ff, 0.2, 2);
+io8Glow.position.set(0.4, 0.5, 0.95); scene.add(io8Glow);
+
+// LED labels (small white pads with text baked into texture — approximate with geometry)
+['PWR','IO8'].forEach((lbl,i)=>{
+  const lm = new THREE.MeshStandardMaterial({color:0xffffff, roughness:1});
+  const lg = new THREE.PlaneGeometry(0.25, 0.08);
+  const lmesh = new THREE.Mesh(lg, lm);
+  lmesh.rotation.x = -Math.PI/2;
+  lmesh.position.set(i===0?-0.4:0.4, pcbH/2+0.001, 0.75);
+  // We'll skip actual text rendering to keep things fast
+  board.add(lmesh);
+});
+
+// ─── Small SMD components on PCB surface ───
+const smdGeo = new THREE.BoxGeometry(0.09, 0.04, 0.05);
+const smdBlk = new THREE.MeshStandardMaterial({color:0x111111, roughness:0.8});
+[[0.3,0.04,-0.4],[-.3,0.04,0.0],[0.5,0.04,0.3],[-.5,0.04,-0.2],[0.2,0.04,0.6]].forEach(([x,y,z])=>{
+  const s = new THREE.Mesh(smdGeo, smdBlk);
+  s.position.set(x,y,z); board.add(s);
+  const ends = new THREE.Mesh(new THREE.BoxGeometry(0.11,0.04,0.02),goldMat);
+  ends.position.set(x,y,z); board.add(ends);
+});
+
+// ─── PARTICLES ───
+
+// Deauth — red burst particles from board
+const dCnt=90, dP=new Float32Array(dCnt*3), dV=[];
+for(let i=0;i<dCnt;i++){
+  const a=Math.random()*Math.PI*2, r=0.1+Math.random();
+  dP[i*3]=Math.cos(a)*r; dP[i*3+1]=Math.random()*.5; dP[i*3+2]=Math.sin(a)*r;
+  dV.push({vx:(Math.random()-.5)*.025,vy:.018+Math.random()*.022,vz:(Math.random()-.5)*.025,life:Math.random()});
+}
+const dGeo=new THREE.BufferGeometry(); dGeo.setAttribute('position',new THREE.BufferAttribute(dP,3));
+const dMat=new THREE.PointsMaterial({color:0xff3311,size:.055,transparent:true,opacity:0,sizeAttenuation:true,depthWrite:false});
+scene.add(new THREE.Points(dGeo,dMat));
+
+// BLE — blue dots orbiting
+const bCnt=50, bP=new Float32Array(bCnt*3), bV=[];
+for(let i=0;i<bCnt;i++){
+  bP[i*3]=(Math.random()-.5)*4; bP[i*3+1]=Math.random()*2.5; bP[i*3+2]=(Math.random()-.5)*4;
+  bV.push({vx:(Math.random()-.5)*.02,vy:.008+Math.random()*.012,vz:(Math.random()-.5)*.02,life:Math.random()*60});
+}
+const bGeo=new THREE.BufferGeometry(); bGeo.setAttribute('position',new THREE.BufferAttribute(bP,3));
+const bMat=new THREE.PointsMaterial({color:0x44aaff,size:.06,transparent:true,opacity:0,sizeAttenuation:true,depthWrite:false});
+scene.add(new THREE.Points(bGeo,bMat));
+
+// Wi-Fi rings (always)
+const rings=[];
+for(let i=0;i<5;i++){
+  const m=new THREE.MeshBasicMaterial({color:0x00d4aa,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false});
+  const r=new THREE.Mesh(new THREE.RingGeometry(.08+i*.32,.12+i*.32,52),m);
+  r.rotation.x=-Math.PI/2; r.position.set(0,.18,0); scene.add(r);
+  rings.push({mesh:r,phase:i*0.45});
+}
+
+// New device: a green "ping" sphere that expands
+const ndSphere = new THREE.Mesh(
+  new THREE.SphereGeometry(0.1, 16, 16),
+  new THREE.MeshBasicMaterial({color:0x00ff88,transparent:true,opacity:0,wireframe:true})
+);
+ndSphere.position.set(1.5, 0.5, -0.5);
+scene.add(ndSphere);
+const ndLine = new THREE.Line(
+  new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0.1,0),new THREE.Vector3(1.5,0.5,-0.5)]),
+  new THREE.LineBasicMaterial({color:0x00ff88,transparent:true,opacity:0})
+);
+scene.add(ndLine);
+
+// Rogue AP: red wireframe floating box
+const rogueAP = new THREE.LineSegments(
+  new THREE.EdgesGeometry(new THREE.BoxGeometry(0.55,0.55,0.55)),
+  new THREE.LineBasicMaterial({color:0xff2200,transparent:true,opacity:0})
+);
+rogueAP.position.set(-1.8, 1.0, -0.5);
+scene.add(rogueAP);
+const rogueLine = new THREE.Line(
+  new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0.1,0),new THREE.Vector3(-1.8,1.0,-0.5)]),
+  new THREE.LineBasicMaterial({color:0xff2200,transparent:true,opacity:0})
+);
+scene.add(rogueLine);
+
+// ─── OLED SCREEN DRAWING ───
+// Pixel font: we'll draw the actual OLED UI using canvas2d
+// 256x256 canvas representing 72x40 physical pixels scaled up
+
+function drawOLED(mode, t, flashState) {
+  const ctx = scrCtx;
+  const W2=256, H2=256;
+  // Scale: 72x40 → we draw in a "virtual" 72x40 and scale up
+  // Actual: draw at full 256x256 but mimic pixel art style
+
+  const isAlert = mode===1||mode===2;
+  const flip = isAlert && flashState; // invert display effect
+
+  if(flip) {
+    ctx.fillStyle='#00ff99';
+    ctx.fillRect(0,0,W2,H2);
+  } else {
+    ctx.fillStyle='#000000';
+    ctx.fillRect(0,0,W2,H2);
+  }
+
+  const fg = flip ? '#000000' : '#00ff99';
+  const dim = flip ? 'rgba(0,0,0,0.5)' : 'rgba(0,255,153,0.5)';
+
+  ctx.font = 'bold 18px monospace';
+  ctx.fillStyle = fg;
+
+  if(mode===0) {
+    // HOME page: WiFi OK + all clear + uptime + dog idle
+    ctx.font='bold 14px monospace';
+    ctx.fillText('WiFi OK',8,22);
+    // small circle status icon top right
+    ctx.beginPath();
+    ctx.arc(240,14,8,0,Math.PI*2);
+    ctx.strokeStyle=fg; ctx.lineWidth=2.5; ctx.stroke();
+    ctx.fillStyle=fg; ctx.beginPath(); ctx.arc(240,14,4,0,Math.PI*2); ctx.fill();
+
+    ctx.fillStyle=dim;
+    ctx.fillRect(8,32,240,1);
+
+    ctx.fillStyle=fg;
+    ctx.font='bold 22px monospace';
+    ctx.fillText('All clear',8,64);
+
+    ctx.font='13px monospace';
+    ctx.fillStyle=flip?'#000000':'rgba(0,255,153,0.7)';
+    ctx.fillText('Uptime: 2h14m',8,90);
+
+    // Dog idle character — simple pixel art
+    drawDogIdle(ctx, 128, 168, fg, dim, t);
+
+    ctx.fillStyle=flip?'rgba(0,0,0,0.4)':'rgba(0,255,153,0.15)';
+    ctx.fillRect(0,220,256,36);
+    ctx.fillStyle=fg;
+    ctx.font='11px monospace';
+    ctx.fillText('eggsentinel.local',12,242);
+
+  } else if(mode===1) {
+    // DEAUTH ALERT
+    ctx.font='bold 16px monospace';
+    ctx.fillStyle=flip?'#000000':'#ff4444';
+    ctx.fillText('🚨 DEAUTH FLOOD',8,26);
+
+    ctx.fillStyle=fg;
+    ctx.font='bold 28px monospace';
+    const cnt = 48 + Math.floor(Math.sin(t*3)*8+Math.random()*4);
+    ctx.fillText(String(cnt)+' frames',8,72);
+
+    ctx.font='12px monospace';
+    ctx.fillStyle=flip?'#000000':'rgba(255,100,100,0.9)';
+    ctx.fillText('in 10s window',8,94);
+    ctx.fillText('Wi-Fi jamming attack?',8,114);
+
+    // Alert dog
+    drawDogAlert(ctx, 128, 178, fg, t);
+
+    ctx.font='bold 13px monospace';
+    ctx.fillStyle=flip?'#000':'#ff6666';
+    ctx.fillText('Telegram alert sent ✓',8,242);
+
+  } else if(mode===2) {
+    // ROGUE AP
+    ctx.fillStyle=flip?'#000':'#ff4444';
+    ctx.font='bold 16px monospace';
+    ctx.fillText('🚨 ROGUE AP',8,26);
+
+    ctx.fillStyle=fg;
+    ctx.font='bold 13px monospace';
+    ctx.fillText('Evil-twin detected!',8,52);
+    ctx.font='12px monospace';
+    ctx.fillStyle=flip?'#000':'rgba(255,120,120,0.9)';
+    ctx.fillText('Your SSID: HomeWiFi',8,74);
+    ctx.fillText('From MAC:',8,94);
+    ctx.fillStyle=flip?'#000':'#ff4444';
+    ctx.font='bold 12px monospace';
+    ctx.fillText('AA:BB:CC:DD:EE:FF',8,112);
+
+    ctx.fillStyle=flip?'#000':'rgba(0,255,153,0.6)';
+    ctx.font='12px monospace';
+    ctx.fillText('Real AP: 11:22:33:44',8,132);
+
+    // Warning icon in centre
+    drawWarningTriangle(ctx,128,185,fg,dim);
+
+  } else if(mode===3) {
+    // BLE SCAN
+    ctx.fillStyle=flip?'#000':'#4488ff';
+    ctx.font='bold 16px monospace';
+    ctx.fillText('BLUETOOTH SCAN',8,26);
+
+    ctx.fillStyle=fg;
+    ctx.font='13px monospace';
+    const devN = 3 + Math.floor((t*0.4)%5);
+    ctx.fillText(`Devices found: ${devN}`,8,52);
+
+    // Mini BLE device list
+    const devs=[
+      {name:'AirPods Pro',rssi:-54,new:false},
+      {name:'Galaxy S24',rssi:-61,new:false},
+      {name:'Unknown',rssi:-73,new:true},
+    ];
+    devs.forEach((d,i)=>{
+      const y=80+i*38;
+      ctx.fillStyle=d.new?(flip?'#000':'#ffaa00'):(flip?'#000':fg);
+      ctx.font='bold 12px monospace';
+      ctx.fillText(d.name,8,y);
+      ctx.font='11px monospace';
+      ctx.fillStyle=flip?'#000':'rgba(0,255,153,0.6)';
+      ctx.fillText(`RSSI: ${d.rssi}dBm${d.new?' ← NEW':''}`,8,y+16);
+    });
+
+    // Radar circle
+    drawMiniRadar(ctx, 200, 170, 40, t, fg, dim);
+
+  } else if(mode===4) {
+    // NEW DEVICE
+    ctx.fillStyle=flip?'#000':'#ffcc00';
+    ctx.font='bold 16px monospace';
+    ctx.fillText('📡 NEW DEVICE',8,26);
+
+    ctx.fillStyle=fg;
+    ctx.font='bold 13px monospace';
+    ctx.fillText('Joined your network:',8,52);
+
+    ctx.font='12px monospace';
+    ctx.fillStyle=flip?'#000':'rgba(0,255,153,0.8)';
+    ctx.fillText('IP: 192.168.1.47',8,74);
+    ctx.fillStyle=flip?'#000':fg;
+    ctx.font='bold 12px monospace';
+    ctx.fillText('MAC: A4:CF:12:8B:3E:01',8,96);
+
+    ctx.font='11px monospace';
+    ctx.fillStyle=flip?'#000':'rgba(255,200,0,0.8)';
+    ctx.fillText('Unknown manufacturer',8,116);
+
+    // Pulse graphic
+    drawPulse(ctx,128,185,50,t,fg);
+
+    ctx.font='bold 12px monospace';
+    ctx.fillStyle=flip?'#000':'#ffcc00';
+    ctx.fillText('Telegram alert sent ✓',8,242);
+  }
+}
+
+function drawDogIdle(ctx,cx,cy,fg,dim,t){
+  const px=(v,c)=>c; // returns colour
+  // Head — rounded square
+  ctx.fillStyle=fg;
+  ctx.fillRect(cx-28,cy-30,56,40); // head
+  ctx.fillRect(cx-20,cy+10,40,22); // snout
+  // Ears up
+  ctx.fillRect(cx-40,cy-44,16,22);
+  ctx.fillRect(cx+24,cy-44,16,22);
+  // Eye whites
+  ctx.fillStyle='#000';
+  ctx.fillRect(cx-18,cy-18,10,10);
+  ctx.fillRect(cx+8,cy-18,10,10);
+  // Nose
+  ctx.fillRect(cx-8,cy+4,16,10);
+  // Mouth line
+  ctx.fillRect(cx-10,cy+20,8,3);
+  ctx.fillRect(cx+2,cy+20,8,3);
+  // Body
+  ctx.fillStyle=fg;
+  ctx.fillRect(cx-22,cy+32,44,26);
+  // Tail wag (oscillates)
+  const tailX = cx+30+Math.sin(t*3)*8;
+  ctx.fillRect(tailX,cy+34,10,8);
+  // Legs
+  ctx.fillRect(cx-20,cy+56,12,18);
+  ctx.fillRect(cx+8,cy+56,12,18);
+}
+
+function drawDogAlert(ctx,cx,cy,fg,t){
+  // Head — angry pitbull
+  ctx.fillStyle=fg;
+  ctx.fillRect(cx-30,cy-32,60,40);
+  ctx.fillRect(cx-22,cy+8,44,20);
+  // Ears back (flat)
+  ctx.fillRect(cx-44,cy-28,16,12);
+  ctx.fillRect(cx+28,cy-28,16,12);
+  // Angry brow lines
+  ctx.fillStyle='#000';
+  ctx.fillRect(cx-22,cy-22,20,4); // left brow angled
+  ctx.fillRect(cx+2,cy-22,20,4);
+  // Eyes (slits)
+  ctx.fillRect(cx-18,cy-12,10,6);
+  ctx.fillRect(cx+8,cy-12,10,6);
+  // Nose
+  ctx.fillRect(cx-8,cy+2,16,8);
+  // Bared teeth
+  ctx.fillStyle='#ffffff';
+  for(let i=0;i<5;i++) ctx.fillRect(cx-16+i*8,cy+14,6,10);
+  // Hackles
+  ctx.fillStyle=fg;
+  for(let i=0;i<5;i++){
+    ctx.fillRect(cx-16+i*8,cy+30,6,14+(Math.sin(t*8+i)>0?4:0));
+  }
+  ctx.fillRect(cx-22,cy+40,44,20);
+  ctx.fillRect(cx-20,cy+58,12,14);
+  ctx.fillRect(cx+8,cy+58,12,14);
+  // Exclamation
+  ctx.fillStyle='#ff4444';
+  ctx.font='bold 28px monospace';
+  ctx.fillText('!',cx+40,cy-20);
+}
+
+function drawWarningTriangle(ctx,cx,cy,fg,dim){
+  ctx.strokeStyle=fg; ctx.lineWidth=3; ctx.lineJoin='round';
+  ctx.beginPath();
+  ctx.moveTo(cx,cy-40); ctx.lineTo(cx+46,cy+24); ctx.lineTo(cx-46,cy+24); ctx.closePath();
+  ctx.stroke();
+  ctx.fillStyle=fg;
+  ctx.font='bold 32px monospace';
+  ctx.textAlign='center';
+  ctx.fillText('!',cx,cy+18);
+  ctx.textAlign='left';
+}
+
+function drawMiniRadar(ctx,cx,cy,r,t,fg,dim){
+  ctx.strokeStyle=dim; ctx.lineWidth=1;
+  [1,.66,.33].forEach(f=>{ ctx.beginPath(); ctx.arc(cx,cy,r*f,0,Math.PI*2); ctx.stroke(); });
+  ctx.strokeStyle=dim;
+  ctx.beginPath(); ctx.moveTo(cx,cy-r); ctx.lineTo(cx,cy+r); ctx.moveTo(cx-r,cy); ctx.lineTo(cx+r,cy); ctx.stroke();
+  // Sweep
+  const a = (t*1.2)%(Math.PI*2);
+  ctx.strokeStyle=fg; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r); ctx.stroke();
+  // Blips
+  [[0.6,0.5],[1.9,0.7],[3.2,0.4]].forEach(([ba,br])=>{
+    const diff=((a-ba)%(Math.PI*2)+Math.PI*2)%(Math.PI*2);
+    if(diff<0.8){
+      const alpha=1-diff/0.8;
+      const bx=cx+Math.cos(ba)*r*br, by=cy+Math.sin(ba)*r*br;
+      ctx.beginPath(); ctx.arc(bx,by,4,0,Math.PI*2);
+      ctx.fillStyle=`rgba(0,255,153,${alpha})`; ctx.fill();
+    }
+  });
+}
+
+function drawPulse(ctx,cx,cy,r,t,fg){
+  const phases=[0,0.4,0.8];
+  phases.forEach(p=>{
+    const prog=((t*0.8+p)%1);
+    const radius=r*prog;
+    const alpha=1-prog;
+    ctx.beginPath(); ctx.arc(cx,cy,radius,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(0,255,153,${alpha*0.8})`; ctx.lineWidth=2; ctx.stroke();
+  });
+  ctx.beginPath(); ctx.arc(cx,cy,6,0,Math.PI*2);
+  ctx.fillStyle=fg; ctx.fill();
+}
+
+// ─── INTERACTION ───
+let isDrag=false,lx=0,ly=0,ry=0,rx=0.18,ty=0,tx=0.18,autoR=true,autoT;
+canvas.addEventListener('mousedown',e=>{isDrag=true;lx=e.clientX;ly=e.clientY;autoR=false;clearTimeout(autoT);canvas.style.cursor='grabbing';document.getElementById('hint').style.opacity='0';});
+window.addEventListener('mousemove',e=>{if(!isDrag)return;ty+=(e.clientX-lx)*.012;tx+=(e.clientY-ly)*.007;tx=Math.max(-.45,Math.min(.55,tx));lx=e.clientX;ly=e.clientY;});
+window.addEventListener('mouseup',()=>{isDrag=false;canvas.style.cursor='grab';autoT=setTimeout(()=>{autoR=true;},3500);});
+canvas.addEventListener('touchstart',e=>{isDrag=true;lx=e.touches[0].clientX;ly=e.touches[0].clientY;autoR=false;});
+canvas.addEventListener('touchmove',e=>{if(!isDrag)return;e.preventDefault();ty+=(e.touches[0].clientX-lx)*.013;tx+=(e.touches[0].clientY-ly)*.008;tx=Math.max(-.45,Math.min(.55,tx));lx=e.touches[0].clientX;ly=e.touches[0].clientY;},{passive:false});
+canvas.addEventListener('touchend',()=>{isDrag=false;autoT=setTimeout(()=>{autoR=true;},3500);});
+
+// ─── MODE ───
+let mode=0, mT=0;
+const mInfo=[
+  {label:'All clear',hex:'#00d4aa',shadow:'0 0 8px #00d4aa'},
+  {label:'Deauth flood detected!',hex:'#ff4d4f',shadow:'0 0 8px #ff4d4f'},
+  {label:'Rogue AP detected',hex:'#ff4d4f',shadow:'0 0 8px #ff4d4f'},
+  {label:'BLE scanning...',hex:'#4488ff',shadow:'0 0 8px #4488ff'},
+  {label:'New device on network!',hex:'#ffcc00',shadow:'0 0 8px #ffcc00'}
+];
+function hexRgb(h){return `${parseInt(h.slice(1,3),16)},${parseInt(h.slice(3,5),16)},${parseInt(h.slice(5,7),16)}`}
+
+window.setM=function(m){
+  mode=m; mT=0;
+  document.getElementById('mlabel').textContent=mInfo[m].label;
+  const dot=document.getElementById('sdot');
+  dot.style.background=mInfo[m].hex;
+  dot.style.boxShadow=mInfo[m].shadow;
+  for(let i=0;i<5;i++){
+    const b=document.getElementById('b'+i);
+    if(i===m){b.style.background=`rgba(${hexRgb(mInfo[m].hex)},.15)`;b.style.borderColor=mInfo[m].hex;b.style.color=mInfo[m].hex;}
+    else{b.style.background='transparent';b.style.borderColor='rgba(255,255,255,.12)';b.style.color='#8b93a7';}
+  }
+};
+
+// ─── ANIMATE ───
+let t=0, flashTimer=0, flashState=false;
+function tick(){
+  requestAnimationFrame(tick);
+  t+=.016; mT+=.016;
+  if(autoR) ty+=.005;
+  ry+=(ty-ry)*.07; rx+=(tx-rx)*.07;
+  board.rotation.y=ry; board.rotation.x=rx;
+
+  const isAlert=mode===1||mode===2, isBle=mode===3, isND=mode===4, isClear=mode===0;
+
+  // Flash state (for alert modes)
+  flashTimer+=.016;
+  if(isAlert && flashTimer>.5){flashTimer=0;flashState=!flashState;}
+  else if(!isAlert){flashState=false;}
+
+  // Draw OLED every frame
+  drawOLED(mode, t, flashState);
+  scrTex.needsUpdate=true;
+
+  // OLED emissive color
+  const oColors=[0x003322,0x220000,0x220000,0x000822,0x221100];
+  screenMat.emissive.setHex(oColors[mode]);
+  screenMat.emissiveIntensity = isAlert ? (flashState?.9:.3) : .85;
+
+  // OLED glow
+  const glColors=[0x00ff88,0xff2200,0xff2200,0x2244ff,0xffcc00];
+  oledGlow.color.setHex(glColors[mode]);
+  oledGlow.intensity = isAlert ? .6+Math.sin(t*8)*.4 : .3+Math.sin(t*1.5)*.1;
+
+  // Alert/BLE scene lights
+  aL.intensity=isAlert?.35+Math.sin(t*7)*.25:Math.max(0,aL.intensity-.04);
+  bL.intensity=isBle?.25+Math.sin(t*2.5)*.1:Math.max(0,bL.intensity-.04);
+  if(isND){bL.color.setHex(0x22cc66); bL.intensity=.2+Math.sin(t*3)*.15;}
+
+  // PWR LED — constant red
+  pwrLedMat.emissiveIntensity = 2.0+Math.sin(t*.3)*.2;
+  pwrGlow.intensity = .25+Math.sin(t*.3)*.05;
+
+  // IO8 LED — changes with mode
+  const io8Colors=[0x0000ff,0xff0000,0xff0000,0x0055ff,0x00ff66];
+  io8LedMat.emissive.setHex(io8Colors[mode]);
+  io8LedMat.emissiveIntensity = 2+Math.sin(t*(isAlert?8:1.5))*.5;
+  io8Glow.color.setHex(io8Colors[mode]);
+  io8Glow.intensity = .2+Math.sin(t*(isAlert?8:1.5))*.15;
+
+  // Rim light
+  const rimColors=[0x00d4aa,0xff2200,0xff2200,0x2244ff,0x22cc66];
+  rim.color.setHex(rimColors[mode]);
+  rim.intensity=.4+Math.sin(t*.7)*.15;
+
+  // Wi-Fi rings
+  const rC=[0x00d4aa,0xff4d4f,0xff4d4f,0x4488ff,0x22cc66][mode];
+  const rSpd=isClear?.7:(isAlert?2.8:1.4);
+  rings.forEach((r,i)=>{
+    r.phase=(r.phase+.016*rSpd)%(Math.PI*2);
+    const prog=(r.phase/(Math.PI*2)+i*.22)%1;
+    r.mesh.scale.set(1+prog*2.8,1+prog*2.8,1);
+    r.mesh.material.color.setHex(rC);
+    r.mesh.material.opacity=Math.max(0,.55-prog*.6);
+    r.mesh.position.y=.2+prog*.35;
+  });
+
+  // Deauth particles
+  dMat.opacity=Math.max(0,Math.min(.95,dMat.opacity+(mode===1?.06:-.05)));
+  if(mode===1){
+    const pos=dGeo.attributes.position.array;
+    for(let i=0;i<dCnt;i++){
+      dV[i].life+=.014;
+      if(dV[i].life>1){const a=Math.random()*Math.PI*2,r=.2+Math.random()*1.8;pos[i*3]=Math.cos(a)*r;pos[i*3+1]=0;pos[i*3+2]=Math.sin(a)*r;dV[i]={vx:(Math.random()-.5)*.03,vy:.02+Math.random()*.025,vz:(Math.random()-.5)*.03,life:0};}
+      pos[i*3]+=dV[i].vx;pos[i*3+1]+=dV[i].vy;pos[i*3+2]+=dV[i].vz;
+    }
+    dGeo.attributes.position.needsUpdate=true;
+  }
+
+  // BLE particles
+  bMat.opacity=Math.max(0,Math.min(.85,bMat.opacity+(isBle?.05:-.04)));
+  if(isBle){
+    const pos=bGeo.attributes.position.array;
+    for(let i=0;i<bCnt;i++){
+      pos[i*3]+=bV[i].vx;pos[i*3+1]+=bV[i].vy;pos[i*3+2]+=bV[i].vz;
+      bV[i].life++;
+      if(pos[i*3+1]>2.5||pos[i*3+1]<0||bV[i].life>90){pos[i*3]=(Math.random()-.5)*3.5;pos[i*3+1]=0;pos[i*3+2]=(Math.random()-.5)*3.5;bV[i]={vx:(Math.random()-.5)*.02,vy:.008+Math.random()*.014,vz:(Math.random()-.5)*.02,life:0};}
+    }
+    bGeo.attributes.position.needsUpdate=true;
+  }
+
+  // Rogue AP
+  const rT=mode===2?1:0;
+  rogueAP.material.opacity+=(rT-rogueAP.material.opacity)*.07;
+  rogueLine.material.opacity+=(rT*.7-rogueLine.material.opacity)*.07;
+  rogueAP.rotation.y=t*.9; rogueAP.rotation.x=t*.6;
+  rogueAP.position.y=1.0+Math.sin(t*1.4)*.25;
+
+  // New device sphere
+  const ndT=isND?1:0;
+  ndSphere.material.opacity+=(ndT*.5-ndSphere.material.opacity)*.06;
+  ndLine.material.opacity+=(ndT*.6-ndLine.material.opacity)*.06;
+  ndSphere.scale.setScalar(1+Math.sin(t*2.5)*0.15);
+
+  renderer.render(scene,camera);
+}
+tick();
+
+window.addEventListener('resize',()=>{
+  const W2=canvas.parentElement.offsetWidth;
+  if(!W2)return;
+  camera.aspect=W2/H;
+  camera.updateProjectionMatrix();
+  renderer.setSize(W2,H);
+});
+})();
+</script>
+
 
 <!-- DETECTIONS -->
 <section id="detect">
@@ -2039,8 +2826,6 @@ document.addEventListener("esp-web-install-complete", () => {
   hostObs.observe(host, { childList: true, subtree: true, attributes: true });
 })();
 </script>
-
-
 
 </body>
 </html>
