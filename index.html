@@ -1408,12 +1408,17 @@ const rogueLine = new THREE.Line(
 scene.add(rogueLine);
 
 // ─── OLED SCREEN DRAWING ───
+// Pixel font: we'll draw the actual OLED UI using canvas2d
+// 256x256 canvas representing 72x40 physical pixels scaled up
+
 function drawOLED(mode, t, flashState) {
   const ctx = scrCtx;
-  const W2=72, H2=40;
+  const W2=256, H2=256;
+  // Scale: 72x40 → we draw in a "virtual" 72x40 and scale up
+  // Actual: draw at full 256x256 but mimic pixel art style
 
   const isAlert = mode===1||mode===2;
-  const flip = isAlert && flashState; 
+  const flip = isAlert && flashState; // invert display effect
 
   if(flip) {
     ctx.fillStyle='#00ff99';
@@ -1717,7 +1722,7 @@ function tick(){
 
   const isAlert=mode===1||mode===2, isBle=mode===3, isND=mode===4, isClear=mode===0;
 
-  // Flash state
+  // Flash state (for alert modes)
   flashTimer+=.016;
   if(isAlert && flashTimer>.5){flashTimer=0;flashState=!flashState;}
   else if(!isAlert){flashState=false;}
@@ -2190,6 +2195,8 @@ window.addEventListener('resize',()=>{
       ? null // not widely supported
       : null;
 
+    // Draw the tail as a filled arc with gradient opacity
+    // We approximate by drawing many thin arc slices
     const TAIL_DEGREES = Math.PI * 0.55;
     const SLICES = 40;
     for (let i = 0; i < SLICES; i++) {
