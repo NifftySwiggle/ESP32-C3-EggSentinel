@@ -1,5 +1,5 @@
 # ESP32-C3 Wi-Fi and Bluetooth Security Monitor
-Buy the ESP32-C3 EGG used or contact me to get one.
+Buy the ESP32-C3 EGG or contact me to get one.
 [Buy from AliExpress](https://s.click.aliexpress.com/e/_c4oyN1mt)
 
 ## 📑 Table of Contents
